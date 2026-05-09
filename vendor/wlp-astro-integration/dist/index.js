@@ -27,9 +27,7 @@ export default function wlpIntegration(options = {}) {
             "astro:config:setup": ({ updateConfig, injectScript }) => {
                 updateConfig({
                     vite: {
-                        plugins: [
-                            wlpAstroVitePlugin(root ? { root } : {}),
-                        ],
+                        plugins: [wlpAstroVitePlugin(root ? { root } : {})],
                     },
                 });
                 // Inject a tiny boot stub on every page. The stub checks the URL

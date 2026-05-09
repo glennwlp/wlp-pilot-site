@@ -20,22 +20,20 @@ const FEATURES_CONTENT = {
 ---
 
 <section id="how-it-works" class="px-6 py-24 max-w-5xl mx-auto">
-	<p
-		data-wlp-source="astro:src/components/Features.astro:FEATURES_CONTENT.eyebrow"
-		class="text-sm font-mono uppercase tracking-widest text-purple-600 mb-6"
-	>
+	<p class="text-sm font-mono uppercase tracking-widest text-purple-600 mb-6">
 		{FEATURES_CONTENT.eyebrow}
 	</p>
-	<h2
-		data-wlp-source="astro:src/components/Features.astro:FEATURES_CONTENT.headline"
-		class="text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-16 max-w-2xl"
-	>
+	<h2 class="text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-16 max-w-2xl">
 		{FEATURES_CONTENT.headline}
 	</h2>
 
 	<div class="grid md:grid-cols-3 gap-12">
 		{FEATURES_CONTENT.items.map((item, i) => (
 			<div>
+				{/* Hand-annotated: the integration's auto-emission can't see closure
+				    variables like `item.title` inside .map() — only member chains
+				    rooted at a frontmatter const auto-resolve. The picker overlay
+				    + writer accept either source. */}
 				<h3
 					data-wlp-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].title`}
 					class="text-xl font-semibold mb-3"

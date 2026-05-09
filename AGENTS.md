@@ -23,9 +23,9 @@ The portal tenant is configured with `allowed_paths = ["src/", "public/"]`. With
 
 ## Content-constant pattern (used by the picker)
 
-Each section component declares its editable copy as a frontmatter `const` named `<COMPONENT>_CONTENT` and reads from it via JSX expressions. Tags that bind a field also carry a `data-wlp-source="astro:<file>:<CONST>.<field>"` attribute — that attribute is what lets the editor click on the element in the preview iframe and open an inline editor for that exact field.
+Each section component declares its editable copy as a frontmatter `const` named `<COMPONENT>_CONTENT` and reads from it via JSX expressions. The `@whitelabelpress/astro-integration` Vite plugin auto-emits a `data-wlp-source="astro:<file>:<CONST>.<field>"` attribute on the wrapping tag of each markup-expression child whose value is a member chain rooted at the const. That attribute is what lets the editor click on the element in the preview iframe and open an inline editor for that exact field.
 
-Example (`src/components/Hero.astro`):
+Example (`src/components/Hero.astro`) — no `data-wlp-source` written by hand:
 
 ```astro
 ---
@@ -35,32 +35,35 @@ const HERO_CONTENT = {
 	body: "...",
 };
 ---
-<h1 data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.headline">
-	{HERO_CONTENT.headline}
-</h1>
-<p data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.body">
-	{HERO_CONTENT.body}
-</p>
+<h1>{HERO_CONTENT.headline}</h1>
+<p>{HERO_CONTENT.body}</p>
 ```
 
-For arrays of objects rendered through `.map()`, build the source-ref via a template literal using the iteration index:
+The build output picks up `data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.headline"` on the `<h1>` automatically.
 
-```astro
-{FEATURES_CONTENT.items.map((item, i) => (
-	<h3 data-wlp-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].title`}>
-		{item.title}
-	</h3>
-))}
-```
+### When hand-annotation is still required
 
-Conventions:
+The auto-emitter only resolves expressions whose member chain is rooted at a frontmatter `const` in the same file. Two patterns fall outside that:
+
+1. **`.map()` loops** — closure variables like `item.title` inside `{items.map((item, i) => ...)}` aren't a member chain rooted at the const. Hand-annotate using a template-literal `data-wlp-source` with the index:
+
+   ```astro
+   {FEATURES_CONTENT.items.map((item, i) => (
+   	<h3 data-wlp-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].title`}>
+   		{item.title}
+   	</h3>
+   ))}
+   ```
+
+2. **Imported constants** — only frontmatter `const`s declared in the same `.astro` file are picked up. If you want to share copy across files, hand-annotate or move the values inline.
+
+A manual `data-wlp-source` always wins — when present, the auto-emitter skips that element. Mixing auto + hand on the same page is fine.
+
+### Conventions
 
 - One `*_CONTENT` const per component, declared at the top of the frontmatter.
 - Field names are lowercase camelCase (`headline`, `ctaPrimaryHref`).
-- The source-ref in `data-wlp-source` must match the actual file path + const name + field path — the editor resolves it directly against the source on disk to land the rewrite on the right StringLiteral.
-- New section component? Add a `*_CONTENT` const + matching `data-wlp-source` on each editable tag, following the shape of `Hero.astro` / `Features.astro` / `Footer.astro`.
-
-> The `@whitelabelpress/astro-integration` package ships the picker overlay but its auto-emission Vite plugin doesn't currently see `.astro` source on Astro 6 (Astro's compiler runs ahead of user Vite plugins). Hand-annotation is the supported pattern until that gap closes.
+- New section component? Add a `*_CONTENT` const, read its fields via JSX expressions, and the integration handles the rest. Only fall back to hand-annotation for `.map()` rows or other patterns the auto-emitter can't see.
 
 ## Files the agent will never edit
 

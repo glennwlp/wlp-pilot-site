@@ -18,6 +18,7 @@
 //
 // On any failure (parse error, unfamiliar shape) we leave the file untouched
 // — emission is best-effort, never breaks the build.
+import { promises as fs } from "node:fs";
 import { parse as parseAstro } from "@astrojs/compiler";
 import { parse as parseJs } from "@babel/parser";
 const TAGLIKE_TYPES = new Set([
@@ -30,39 +31,96 @@ export function wlpAstroVitePlugin(options = {}) {
     const root = options.root ?? process.cwd();
     return {
         name: "@whitelabelpress/astro-integration:emit-source-refs",
+        // Important note on hook choice:
+        //
+        //   We use the `load` hook, NOT `transform`. In Astro 6, the framework's
+        //   own vite-plugin-astro registers `transform` with enforce: "pre" + a
+        //   filter on `/\.astro$/` and compiles every `.astro` file to JS before
+        //   any other plugin's transform sees it. Even with our own enforce:
+        //   "pre", we'd receive the COMPILED JS (an `import { render as $$render
+        //   }` module) — too late to mutate the original `.astro` source.
+        //
+        //   Astro's `load` hook only fires for `?astro&type=...` virtual sub-
+        //   modules (style chunks, scripts, etc.). For the bare `.astro` file
+        //   (no query), Vite's default file-system load runs. We slot our load
+        //   hook BEFORE that default — read the file from disk, splice
+        //   `data-wlp-source` attributes, return the mutated source. Astro's
+        //   transform then compiles our mutated source as if the user had
+        //   typed it that way.
+        //
+        //   The hook is wrapped in a filter so Vite only calls our handler for
+        //   bare `.astro` IDs — sub-modules with a query are excluded by the
+        //   regex anchor `$` after `\.astro`.
         enforce: "pre",
-        async transform(code, id) {
-            if (!id.endsWith(".astro"))
-                return null;
-            // Skip files inside node_modules — only walk the user's own .astro files.
-            if (id.includes("/node_modules/"))
-                return null;
-            const relPath = toRelativePath(id, root);
-            let ast;
-            try {
-                const result = await parseAstro(code, { position: true });
-                ast = result.ast;
-            }
-            catch {
-                // Don't break the build over our injection.
-                return null;
-            }
-            const constNames = collectFrontmatterConstNames(ast);
-            if (constNames.size === 0)
-                return null;
-            const insertions = collectInsertions(ast, constNames, relPath);
-            if (insertions.length === 0)
-                return null;
-            // Apply insertions from highest offset to lowest so earlier offsets
-            // remain valid.
-            insertions.sort((a, b) => b.offset - a.offset);
-            let out = code;
-            for (const ins of insertions) {
-                out = out.slice(0, ins.offset) + ins.text + out.slice(ins.offset);
-            }
-            return { code: out, map: null };
+        load: {
+            filter: {
+                id: /\.astro$/,
+            },
+            async handler(id) {
+                const cleanId = id.split("?")[0];
+                // Defense-in-depth — the filter above only matches /\.astro$/ but a
+                // future caller bypassing the filter shouldn't process node_modules.
+                if (!cleanId.endsWith(".astro"))
+                    return null;
+                if (cleanId.includes("/node_modules/"))
+                    return null;
+                const code = await fs.readFile(cleanId, "utf-8");
+                const relPath = toRelativePath(id, root);
+                const mutated = await mutateAstroSource(code, relPath);
+                if (mutated && process.env.WLP_DEBUG_DUMP) {
+                    await fs.writeFile(`/tmp/wlp-mutated-${relPath.replace(/\//g, "_")}`, mutated, "utf-8");
+                }
+                return mutated ?? null;
+            },
         },
     };
+}
+/**
+ * Pure transform: parse an `.astro` source string, walk its AST, splice in
+ * `data-wlp-source` attributes for each content-constant binding, and return
+ * the mutated source. Returns `null` when there's nothing to inject (no
+ * frontmatter constants, no markup-expression hits) or when parsing fails —
+ * callers should fall through to their default behaviour.
+ *
+ * Exported so tests can drive the transform directly without staging the
+ * file on disk + going through Vite's `load` hook.
+ */
+export async function mutateAstroSource(code, relPath) {
+    let ast;
+    try {
+        const result = await parseAstro(code, { position: true });
+        ast = result.ast;
+    }
+    catch {
+        // Don't break the build over our injection.
+        return null;
+    }
+    const constNames = collectFrontmatterConstNames(ast);
+    if (constNames.size === 0)
+        return null;
+    const insertions = collectInsertions(ast, constNames, relPath);
+    if (insertions.length === 0)
+        return null;
+    // CRITICAL: `@astrojs/compiler`'s position offsets are in UTF-8 BYTES (its
+    // parser is Go-based). JavaScript string slicing operates on UTF-16 code
+    // units. A non-ASCII character — em-dash, smart quote, emoji, anything
+    // outside ASCII — pushes byte offsets ahead of code-unit offsets, and
+    // direct slicing lands the insertion in the wrong place (corrupting the
+    // expression and the output JSX). Splice on the UTF-8 byte buffer instead,
+    // then decode once at the end.
+    insertions.sort((a, b) => b.offset - a.offset);
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder("utf-8");
+    let bytes = encoder.encode(code);
+    for (const ins of insertions) {
+        const insertBytes = encoder.encode(ins.text);
+        const merged = new Uint8Array(bytes.length + insertBytes.length);
+        merged.set(bytes.subarray(0, ins.offset), 0);
+        merged.set(insertBytes, ins.offset);
+        merged.set(bytes.subarray(ins.offset), ins.offset + insertBytes.length);
+        bytes = merged;
+    }
+    return decoder.decode(bytes);
 }
 function toRelativePath(id, root) {
     // Strip any vite-style query string (`?astro&type=script` etc).
