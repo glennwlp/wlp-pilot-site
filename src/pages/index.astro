@@ -1,0 +1,29 @@
+---
+import '../styles/global.css';
+import Hero from '../components/Hero.astro';
+import Features from '../components/Features.astro';
+import Footer from '../components/Footer.astro';
+
+const PAGE_META = {
+	title: "WhitelabelPRESS pilot — built for editors",
+	description: "A demo site connected to the WhitelabelPRESS editing portal. Every word on this page is editable from chat.",
+};
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{PAGE_META.title}</title>
+		<meta name="description" content={PAGE_META.description} />
+	</head>
+
+	<body class="bg-white text-slate-900 antialiased">
+		<Hero />
+		<Features />
+		<Footer />
+	</body>
+</html>

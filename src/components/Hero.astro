@@ -1,0 +1,48 @@
+---
+const HERO_CONTENT = {
+	eyebrow: "WhitelabelPRESS pilot",
+	headline: "Built for editors who don't want to wait on developers",
+	body: "A site for the people who actually write the words. Edit headlines, swap images, tweak CTAs — without opening a ticket or learning Git.",
+	ctaPrimaryLabel: "See how it works",
+	ctaPrimaryHref: "#how-it-works",
+	ctaSecondaryLabel: "Read the brief",
+	ctaSecondaryHref: "#brief",
+};
+---
+
+<section class="px-6 pt-24 pb-32 max-w-4xl mx-auto">
+	<p
+		data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.eyebrow"
+		class="text-sm font-mono uppercase tracking-widest text-purple-600 mb-6"
+	>
+		{HERO_CONTENT.eyebrow}
+	</p>
+	<h1
+		data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.headline"
+		class="text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-8"
+	>
+		{HERO_CONTENT.headline}
+	</h1>
+	<p
+		data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.body"
+		class="text-xl text-slate-700 leading-relaxed mb-10 max-w-2xl"
+	>
+		{HERO_CONTENT.body}
+	</p>
+	<div class="flex flex-wrap gap-4">
+		<a
+			data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.ctaPrimaryLabel"
+			href={HERO_CONTENT.ctaPrimaryHref}
+			class="py-3 px-6 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition"
+		>
+			{HERO_CONTENT.ctaPrimaryLabel}
+		</a>
+		<a
+			data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.ctaSecondaryLabel"
+			href={HERO_CONTENT.ctaSecondaryHref}
+			class="py-3 px-6 border border-slate-300 text-slate-900 font-semibold rounded-lg hover:bg-slate-50 transition"
+		>
+			{HERO_CONTENT.ctaSecondaryLabel}
+		</a>
+	</div>
+</section>

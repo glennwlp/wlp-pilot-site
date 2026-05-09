@@ -1,0 +1,29 @@
+{
+  "name": "@whitelabelpress/astro-integration",
+  "version": "0.1.0-vendored.1",
+  "description": "Vendored copy of @whitelabelpress/astro-integration. Replace with the npm-published package once available.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./overlay-picker": {
+      "types": "./dist/overlay/picker.d.ts",
+      "import": "./dist/overlay/picker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "astro": ">=4.0.0"
+  },
+  "dependencies": {
+    "@astrojs/compiler": "^4.0.0",
+    "@babel/parser": "^7.29.0"
+  }
+}

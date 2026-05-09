@@ -1,0 +1,1 @@
+{"version":3,"file":"vite-plugin.d.ts","sourceRoot":"","sources":["../src/vite-plugin.ts"],"names":[],"mappings":"AA8BA,OAAO,KAAK,EAAE,MAAM,EAAE,MAAM,MAAM,CAAC;AAanC,UAAU,aAAa;IACrB,kEAAkE;IAClE,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AASD,wBAAgB,kBAAkB,CAAC,OAAO,GAAE,aAAkB,GAAG,MAAM,CAqCtE"}
