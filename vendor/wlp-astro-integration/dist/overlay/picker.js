@@ -52,6 +52,27 @@ export function installPicker() {
             parentOrigin = event.origin;
         }
     });
+    // Live-preview channel — apply the EditPanel's keystrokes directly to the
+    // DOM so the user sees the change without saving. Origin-pinned to the
+    // already-bound parentOrigin (set above by `wlp:init`); no message is
+    // honoured before the parent's init handshake.
+    window.addEventListener("message", (event) => {
+        if (parentOrigin === null)
+            return;
+        if (event.origin !== parentOrigin)
+            return;
+        const data = event.data;
+        if (!data || data.type !== "wlp:livePreview")
+            return;
+        if (typeof data.sourceRef !== "string" || data.sourceRef.length === 0) {
+            return;
+        }
+        if (data.sourceRef.length > 512)
+            return;
+        if (typeof data.newValue !== "string")
+            return;
+        applyLivePreview(data.sourceRef, data.newValue, data.kind);
+    });
     injectStyles();
     attachListeners();
 }
@@ -124,6 +145,38 @@ function sendClickMessage(el) {
         },
     };
     window.parent.postMessage(message, parentOrigin);
+}
+/**
+ * Apply a live-preview value to every element matching `data-wlp-source`.
+ * Multiple matches are valid (an array.map can produce N elements with the
+ * same source-ref pattern, though the index makes them distinct in practice).
+ * For text we replace `textContent`; for image/video we update `src`. Empty
+ * matches are silent — the parent might be racing the iframe load.
+ */
+function applyLivePreview(sourceRef, newValue, kindHint) {
+    const escaped = escapeAttrValue(sourceRef);
+    const els = document.querySelectorAll(`[${DATA_ATTR}="${escaped}"]`);
+    if (els.length === 0)
+        return;
+    els.forEach((el) => {
+        const kindAttr = el.getAttribute(KIND_ATTR);
+        const kind = kindHint ??
+            (kindAttr === "image" || kindAttr === "video" ? kindAttr : "text");
+        if (kind === "image" && el instanceof HTMLImageElement) {
+            el.src = newValue;
+            return;
+        }
+        if (kind === "video" &&
+            (el instanceof HTMLVideoElement || el instanceof HTMLSourceElement)) {
+            el.src = newValue;
+            return;
+        }
+        el.textContent = newValue;
+    });
+}
+/** Escape `"` and `\` in an attribute value so it's safe inside `[attr="..."]`. */
+function escapeAttrValue(s) {
+    return s.replace(/[\\"]/g, "\\$&");
 }
 function extractCurrentValue(el, kind) {
     if (kind === "image" && el instanceof HTMLImageElement)
