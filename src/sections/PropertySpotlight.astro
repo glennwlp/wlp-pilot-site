@@ -1,0 +1,116 @@
+---
+// PropertySpotlight — pilot-specific primitive (tenant-side escape hatch
+// demo for Phase 22 row 22.8). Unlike the package's <CollectionGrid>, this
+// renders a SINGLE property as a hero-sized side-by-side block: full-bleed
+// image on one side, headline + price + body on the other.
+//
+// Lives entirely under the pilot Astro repo. The portal's
+// list_section_catalog tool walks src/sections/manifest.ts and surfaces
+// this manifest with `source: "tenant"` — the agent can pick it the same
+// way it picks the package primitives, without any portal change.
+
+import {
+  resolvePath,
+  asString,
+  asImageUrl,
+  fetchPost,
+  fetchMediaBatch,
+  attachMediaToPosts,
+  collectMissingMediaIds,
+  type CollectionMapping,
+} from '@whitelabelpress/astro-sections';
+
+export interface Props {
+  /** WP rest_base of the post type, e.g. "property". */
+  postType: string;
+  /** Tenant WP base URL. */
+  wpUrl: string;
+  /** Slug of the post to spotlight. */
+  slug: string;
+  /** Field-path mapping. Same shape as <CollectionGrid> for consistency. */
+  mapping: CollectionMapping;
+  /** Position the image left or right of the text. Default "left". */
+  imageSide?: 'left' | 'right';
+  /** Empty-state copy when the slug doesn't resolve. */
+  emptyText?: string;
+}
+
+const {
+  postType,
+  wpUrl,
+  slug,
+  mapping,
+  imageSide = 'left',
+  emptyText = 'Spotlight not available.',
+} = Astro.props;
+
+const post = await fetchPost(postType, slug, { wpUrl });
+
+let resolvedPost = post;
+if (post && mapping.image) {
+  const missing = collectMissingMediaIds([post], [mapping.image]);
+  if (missing.length > 0) {
+    const media = await fetchMediaBatch(missing, { wpUrl });
+    [resolvedPost] = attachMediaToPosts([post], media);
+  }
+}
+
+const titleStr = resolvedPost ? asString(resolvePath(resolvedPost, mapping.title)) : null;
+const imageUrl =
+  resolvedPost && mapping.image
+    ? asImageUrl(resolvedPost, resolvePath(resolvedPost, mapping.image))
+    : null;
+const badgeStr =
+  resolvedPost && mapping.badge ? asString(resolvePath(resolvedPost, mapping.badge)) : null;
+const bodyStr =
+  resolvedPost && mapping.body ? asString(resolvePath(resolvedPost, mapping.body)) : null;
+const hrefStr =
+  (resolvedPost && mapping.href ? asString(resolvePath(resolvedPost, mapping.href)) : null) ??
+  (resolvedPost ? asString(resolvePath(resolvedPost, 'link')) : null) ??
+  '#';
+---
+
+{!resolvedPost ? (
+	<p class="wlp-spotlight__empty">{emptyText}</p>
+) : (
+	<section
+		class:list={['wlp-spotlight', `wlp-spotlight--${imageSide}`]}
+		data-image-side={imageSide}
+		data-post-type={postType}
+		data-post-slug={slug}
+	>
+		{imageUrl && (
+			<div class="wlp-spotlight__media">
+				<img
+					src={imageUrl}
+					alt={titleStr ?? ''}
+					data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.image}`}
+				/>
+			</div>
+		)}
+		<div class="wlp-spotlight__body">
+			{badgeStr && (
+				<span
+					class="wlp-spotlight__badge"
+					data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.badge}`}
+				>
+					{badgeStr}
+				</span>
+			)}
+			<h2
+				class="wlp-spotlight__title"
+				data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.title}`}
+			>
+				{titleStr}
+			</h2>
+			{bodyStr && (
+				<div
+					class="wlp-spotlight__copy"
+					data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.body}`}
+					set:html={bodyStr}
+				/>
+			)}
+			<a class="wlp-spotlight__cta" href={hrefStr}>View listing →</a>
+		</div>
+	</section>
+)}
