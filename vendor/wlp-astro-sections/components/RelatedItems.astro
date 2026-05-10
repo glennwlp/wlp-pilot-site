@@ -1,0 +1,143 @@
+---
+// RelatedItems — Phase 22, Slice 22B.
+//
+// Renders a grid of cards from an ACF relationship field on a source post.
+// Three round-trips:
+//   1. Fetch the source post (via fetchRelatedBatch with its own id, which
+//      doubles as a post-by-id helper because fetchPost only takes a slug).
+//   2. Read the relationship field path → array of related post IDs.
+//   3. fetchRelatedBatch on those IDs (single call, deduped, _embed-friendly).
+//   4. (When the mapping references images outside _embed) one media batch.
+//
+// renderAs is currently fixed to a grid layout — the variant prop is
+// reserved for the eventual <CollectionList> renderAs branch (Slice 22B
+// back-half). Same data-wlp-source emission as <CollectionGrid>.
+
+import {
+  resolvePath,
+  asString,
+  asImageUrl,
+  asPostIds,
+  fetchRelatedBatch,
+  fetchMediaBatch,
+  attachMediaToPosts,
+  collectMissingMediaIds,
+  type CollectionMapping,
+  type FieldPath,
+  type WpPost,
+} from "@whitelabelpress/astro-sections";
+
+export interface Props {
+  /** WordPress rest_base of the source post's post type, e.g. "property". */
+  postType: string;
+  /** Tenant WP base URL — passed in from the consuming page's frontmatter. */
+  wpUrl: string;
+  /** ID of the source post whose relationship field we follow. */
+  postId: number;
+  /** Field path on the source post that resolves to an array of post IDs. */
+  field: FieldPath;
+  /** Layout primitive to render with. Only "CollectionGrid" is wired today. */
+  renderAs?: "CollectionGrid" | "CollectionList";
+  /** Slot-to-path mapping for the related cards. `title` is required. */
+  mapping: CollectionMapping;
+  /** Cap the rendered card count. Default = however many ids the field has. */
+  limit?: number;
+  /** Empty-state copy when the field has no related posts. */
+  emptyText?: string;
+}
+
+const {
+  postType,
+  wpUrl,
+  postId,
+  field,
+  renderAs = "CollectionGrid",
+  mapping,
+  limit,
+  emptyText = "No related items.",
+} = Astro.props;
+
+if (renderAs !== "CollectionGrid") {
+  throw new Error(
+    `<RelatedItems renderAs="${renderAs}"> is not yet implemented. Only "CollectionGrid" is wired in this slice.`,
+  );
+}
+
+// 1. Source post lookup — reuse fetchRelatedBatch (single-id include is fine).
+const [sourcePost] = await fetchRelatedBatch(postType, [postId], { wpUrl });
+const rawIds = sourcePost ? asPostIds(resolvePath(sourcePost, field)) : null;
+const relatedIds = rawIds && limit ? rawIds.slice(0, limit) : (rawIds ?? []);
+
+// 2. Fetch the related cards in one batched call.
+const relatedPosts: WpPost[] = relatedIds.length > 0
+  ? await fetchRelatedBatch(postType, relatedIds, { wpUrl })
+  : [];
+
+// 3. Fold any missing-from-_embed image attachments back in.
+const imagePaths = mapping.image ? [mapping.image] : [];
+const missingMediaIds = collectMissingMediaIds(relatedPosts, imagePaths);
+const extraMedia = missingMediaIds.length > 0
+  ? await fetchMediaBatch(missingMediaIds, { wpUrl })
+  : [];
+const hydratedPosts = attachMediaToPosts(relatedPosts, extraMedia);
+---
+
+<section
+  class="wlp-related-items wlp-related-items--grid"
+  data-render-as={renderAs}
+  data-post-type={postType}
+  data-source-post-id={postId}
+>
+  {hydratedPosts.length === 0 ? (
+    <p class="wlp-related-items__empty">{emptyText}</p>
+  ) : (
+    <ul class="wlp-related-items__list">
+      {hydratedPosts.map((post) => {
+        const titleStr = asString(resolvePath(post, mapping.title));
+        const imageUrl = mapping.image ? asImageUrl(post, resolvePath(post, mapping.image)) : null;
+        const badgeStr = mapping.badge ? asString(resolvePath(post, mapping.badge)) : null;
+        const bodyStr = mapping.body ? asString(resolvePath(post, mapping.body)) : null;
+        const hrefStr =
+          (mapping.href ? asString(resolvePath(post, mapping.href)) : null) ??
+          asString(resolvePath(post, "link")) ??
+          "#";
+
+        return (
+          <li class="wlp-card">
+            {imageUrl && (
+              <img
+                class="wlp-card__image"
+                src={imageUrl}
+                alt={titleStr ?? ""}
+                data-wlp-source={`wp:post:${post.id}:${mapping.image}`}
+              />
+            )}
+            {badgeStr && (
+              <span
+                class="wlp-card__badge"
+                data-wlp-source={`wp:post:${post.id}:${mapping.badge}`}
+              >
+                {badgeStr}
+              </span>
+            )}
+            <a class="wlp-card__link" href={hrefStr}>
+              <h3
+                class="wlp-card__title"
+                data-wlp-source={`wp:post:${post.id}:${mapping.title}`}
+              >
+                {titleStr}
+              </h3>
+            </a>
+            {bodyStr && (
+              <p
+                class="wlp-card__body"
+                data-wlp-source={`wp:post:${post.id}:${mapping.body}`}
+                set:html={bodyStr}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</section>

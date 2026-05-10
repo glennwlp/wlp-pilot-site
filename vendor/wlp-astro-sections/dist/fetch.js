@@ -60,7 +60,10 @@ function encodeRestBase(restBase) {
     }
     // restBase is a single path segment like "property" or "posts". Reject any
     // path-shaped value so a tenant CMS author can't redirect the URL.
-    if (/[\\/?#]/.test(restBase)) {
+    // Pure-dot segments (`.`, `..`) are also rejected — `encodeURIComponent`
+    // leaves them unchanged and `new URL(...)` normalises them away, which
+    // would silently rewrite the request to the REST root.
+    if (/[\\/?#]/.test(restBase) || /^\.+$/.test(restBase)) {
         throw new AstroSectionsFetchError(`restBase must be a single path segment, got '${restBase}'`, { url: restBase });
     }
     return encodeURIComponent(restBase);
