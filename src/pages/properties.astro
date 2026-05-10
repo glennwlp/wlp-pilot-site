@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import CollectionGrid from '@whitelabelpress/astro-sections/components/CollectionGrid.astro';
+import RelatedItems from '@whitelabelpress/astro-sections/components/RelatedItems.astro';
 import Footer from '../components/Footer.astro';
 
 const PAGE_META = {
@@ -65,6 +66,31 @@ const WP_URL = "https://acss.whitelabelpress.com";
 				variant="card-photo-overlay"
 				emptyText="No properties yet."
 			/>
+
+			<section class="mt-20 border-t border-slate-200 pt-12">
+				<p class="text-xs font-mono uppercase tracking-widest text-slate-500">// RELATED_ITEMS_SMOKE</p>
+				<h2 class="mt-2 text-2xl font-semibold tracking-tight">Similar units to Sunset Villa</h2>
+				<p class="mt-2 max-w-2xl text-sm text-slate-600">
+					Cards rendered from <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs">acf.similar_units</code> — exercises
+					<code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs">fetchRelatedBatch</code> end-to-end.
+				</p>
+
+				<div class="mt-6">
+					<RelatedItems
+						postType="property"
+						wpUrl={WP_URL}
+						postId={1183}
+						field="acf.similar_units"
+						renderAs="CollectionGrid"
+						mapping={{
+							image: "acf.gallery[0]",
+							title: "title.rendered",
+							badge: "acf.listing_price",
+							body: "acf.short_description",
+						}}
+					/>
+				</div>
+			</section>
 		</main>
 
 		<Footer />
@@ -75,13 +101,19 @@ const WP_URL = "https://acss.whitelabelpress.com";
 	/* Minimal variant CSS so the smoke render reads as cards rather than a
 	   raw <ul>. Slice 22B's full variant stylesheet ships with the package
 	   later; this is a pilot-local override. */
-	.wlp-collection-grid__list {
+	.wlp-collection-grid__list,
+	.wlp-related-items__list {
 		list-style: none;
 		padding: 0;
 		margin: 0;
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: 1.5rem;
+	}
+	.wlp-related-items__empty {
+		padding: 4rem 0;
+		text-align: center;
+		color: rgb(100 116 139);
 	}
 	.wlp-card {
 		display: flex;
