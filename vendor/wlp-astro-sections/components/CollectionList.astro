@@ -1,0 +1,127 @@
+---
+// CollectionList — Phase 22, Slice 22B.
+//
+// Vertical/feed layout sibling of <CollectionGrid>. Same fetch + mapping
+// surface; the layout difference is class-hook only — the consumer's CSS
+// styles `.wlp-collection-list__list` as a single-column flow (or whatever
+// shape suits a blog / news / events feed). No `variant` prop here:
+// vertical feeds are a single layout, not three card variants.
+//
+// (The fetch-frontmatter is duplicated from <CollectionGrid>. A shared
+// fetchAndHydrate helper would dedupe it cleanly, but Astro frontmatter
+// can't be re-used across components without a wrapper component pattern.
+// Two primitives × ~15 lines of fetch logic is below the abstraction
+// threshold; lift if a third copy lands.)
+
+import {
+  resolvePath,
+  asString,
+  asImageUrl,
+  fetchCollection,
+  fetchMediaBatch,
+  attachMediaToPosts,
+  collectMissingMediaIds,
+  type CollectionMapping,
+} from "@whitelabelpress/astro-sections";
+
+export interface Props {
+  /** WordPress rest_base of the target post type, e.g. "post". */
+  postType: string;
+  /** Tenant WP base URL — passed in from the consuming page's frontmatter. */
+  wpUrl: string;
+  /** Max items to render. Default 10. */
+  limit?: number;
+  /** Sort field. Use a core field name, "menu_order", or `acf.<field>`. */
+  orderBy?: "date" | "menu_order" | `acf.${string}`;
+  /** Sort direction. Default "desc". */
+  orderDir?: "asc" | "desc";
+  /** Slot-to-path mapping. `title` is required; rest are optional. */
+  mapping: CollectionMapping;
+  /** Empty-state copy. Default "No items yet." */
+  emptyText?: string;
+}
+
+const {
+  postType,
+  wpUrl,
+  limit = 10,
+  orderBy,
+  orderDir = "desc",
+  mapping,
+  emptyText = "No items yet.",
+} = Astro.props;
+
+const posts = await fetchCollection(postType, {
+  wpUrl,
+  perPage: limit,
+  orderBy,
+  order: orderDir,
+});
+
+const imagePaths = mapping.image ? [mapping.image] : [];
+const missingMediaIds = collectMissingMediaIds(posts, imagePaths);
+const extraMedia = missingMediaIds.length > 0
+  ? await fetchMediaBatch(missingMediaIds, { wpUrl })
+  : [];
+const hydratedPosts = attachMediaToPosts(posts, extraMedia);
+---
+
+<section
+  class="wlp-collection-list"
+  data-post-type={postType}
+>
+  {hydratedPosts.length === 0 ? (
+    <p class="wlp-collection-list__empty">{emptyText}</p>
+  ) : (
+    <ul class="wlp-collection-list__list">
+      {hydratedPosts.map((post) => {
+        const titleStr = asString(resolvePath(post, mapping.title));
+        const imageUrl = mapping.image ? asImageUrl(post, resolvePath(post, mapping.image)) : null;
+        const badgeStr = mapping.badge ? asString(resolvePath(post, mapping.badge)) : null;
+        const bodyStr = mapping.body ? asString(resolvePath(post, mapping.body)) : null;
+        const hrefStr =
+          (mapping.href ? asString(resolvePath(post, mapping.href)) : null) ??
+          asString(resolvePath(post, "link")) ??
+          "#";
+
+        return (
+          <li class="wlp-feed-item">
+            {imageUrl && (
+              <img
+                class="wlp-feed-item__image"
+                src={imageUrl}
+                alt={titleStr ?? ""}
+                data-wlp-source={`wp:post:${post.id}:${mapping.image}`}
+              />
+            )}
+            <div class="wlp-feed-item__content">
+              {badgeStr && (
+                <span
+                  class="wlp-feed-item__badge"
+                  data-wlp-source={`wp:post:${post.id}:${mapping.badge}`}
+                >
+                  {badgeStr}
+                </span>
+              )}
+              <a class="wlp-feed-item__link" href={hrefStr}>
+                <h3
+                  class="wlp-feed-item__title"
+                  data-wlp-source={`wp:post:${post.id}:${mapping.title}`}
+                >
+                  {titleStr}
+                </h3>
+              </a>
+              {bodyStr && (
+                <p
+                  class="wlp-feed-item__body"
+                  data-wlp-source={`wp:post:${post.id}:${mapping.body}`}
+                  set:html={bodyStr}
+                />
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</section>

@@ -1,6 +1,6 @@
 {
   "name": "@whitelabelpress/astro-sections",
-  "version": "0.0.1-vendored.2",
+  "version": "0.0.1-vendored.3",
   "description": "Vendored copy of @whitelabelpress/astro-sections. Replace with the npm-published package once available.",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,6 +11,7 @@
       "import": "./dist/index.js"
     },
     "./components/CollectionGrid.astro": "./components/CollectionGrid.astro",
+    "./components/CollectionList.astro": "./components/CollectionList.astro",
     "./components/RelatedItems.astro": "./components/RelatedItems.astro"
   },
   "files": [

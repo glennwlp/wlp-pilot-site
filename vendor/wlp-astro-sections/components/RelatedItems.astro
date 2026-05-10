@@ -9,9 +9,12 @@
 //   3. fetchRelatedBatch on those IDs (single call, deduped, _embed-friendly).
 //   4. (When the mapping references images outside _embed) one media batch.
 //
-// renderAs is currently fixed to a grid layout — the variant prop is
-// reserved for the eventual <CollectionList> renderAs branch (Slice 22B
-// back-half). Same data-wlp-source emission as <CollectionGrid>.
+// `renderAs` switches the wrapper / item class hooks so the consumer's CSS
+// can lay the cards out as a grid (matching <CollectionGrid>) or a vertical
+// feed (matching <CollectionList>). The DOM for each card differs slightly
+// between the two — grid keeps the badge/title/body as siblings of the
+// image inside `.wlp-card`, feed wraps them in a `.wlp-feed-item__content`
+// child so the image floats left.
 
 import {
   resolvePath,
@@ -57,12 +60,6 @@ const {
   emptyText = "No related items.",
 } = Astro.props;
 
-if (renderAs !== "CollectionGrid") {
-  throw new Error(
-    `<RelatedItems renderAs="${renderAs}"> is not yet implemented. Only "CollectionGrid" is wired in this slice.`,
-  );
-}
-
 // 1. Source post lookup — reuse fetchRelatedBatch (single-id include is fine).
 const [sourcePost] = await fetchRelatedBatch(postType, [postId], { wpUrl });
 const rawIds = sourcePost ? asPostIds(resolvePath(sourcePost, field)) : null;
@@ -83,15 +80,31 @@ const hydratedPosts = attachMediaToPosts(relatedPosts, extraMedia);
 ---
 
 <section
-  class="wlp-related-items wlp-related-items--grid"
+  class:list={[
+    renderAs === "CollectionList"
+      ? "wlp-collection-list"
+      : ["wlp-related-items", "wlp-related-items--grid"],
+  ]}
   data-render-as={renderAs}
   data-post-type={postType}
   data-source-post-id={postId}
 >
   {hydratedPosts.length === 0 ? (
-    <p class="wlp-related-items__empty">{emptyText}</p>
+    <p
+      class={
+        renderAs === "CollectionList"
+          ? "wlp-collection-list__empty"
+          : "wlp-related-items__empty"
+      }
+    >{emptyText}</p>
   ) : (
-    <ul class="wlp-related-items__list">
+    <ul
+      class={
+        renderAs === "CollectionList"
+          ? "wlp-collection-list__list"
+          : "wlp-related-items__list"
+      }
+    >
       {hydratedPosts.map((post) => {
         const titleStr = asString(resolvePath(post, mapping.title));
         const imageUrl = mapping.image ? asImageUrl(post, resolvePath(post, mapping.image)) : null;
@@ -101,6 +114,46 @@ const hydratedPosts = attachMediaToPosts(relatedPosts, extraMedia);
           (mapping.href ? asString(resolvePath(post, mapping.href)) : null) ??
           asString(resolvePath(post, "link")) ??
           "#";
+
+        if (renderAs === "CollectionList") {
+          return (
+            <li class="wlp-feed-item">
+              {imageUrl && (
+                <img
+                  class="wlp-feed-item__image"
+                  src={imageUrl}
+                  alt={titleStr ?? ""}
+                  data-wlp-source={`wp:post:${post.id}:${mapping.image}`}
+                />
+              )}
+              <div class="wlp-feed-item__content">
+                {badgeStr && (
+                  <span
+                    class="wlp-feed-item__badge"
+                    data-wlp-source={`wp:post:${post.id}:${mapping.badge}`}
+                  >
+                    {badgeStr}
+                  </span>
+                )}
+                <a class="wlp-feed-item__link" href={hrefStr}>
+                  <h3
+                    class="wlp-feed-item__title"
+                    data-wlp-source={`wp:post:${post.id}:${mapping.title}`}
+                  >
+                    {titleStr}
+                  </h3>
+                </a>
+                {bodyStr && (
+                  <p
+                    class="wlp-feed-item__body"
+                    data-wlp-source={`wp:post:${post.id}:${mapping.body}`}
+                    set:html={bodyStr}
+                  />
+                )}
+              </div>
+            </li>
+          );
+        }
 
         return (
           <li class="wlp-card">
