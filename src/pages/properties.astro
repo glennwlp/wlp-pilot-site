@@ -1,0 +1,126 @@
+---
+import '../styles/global.css';
+import CollectionGrid from '@whitelabelpress/astro-sections/components/CollectionGrid.astro';
+import Footer from '../components/Footer.astro';
+
+const PAGE_META = {
+	title: "Properties — WhitelabelPRESS pilot",
+	description: "A grid of properties rendered from WordPress via @whitelabelpress/astro-sections — no per-CPT fetch loop.",
+};
+
+// Pilot WP — schema-driven render of the `property` CPT seeded by
+// `wlp-pilot-property.php`. The grid below is the live verification surface
+// for Phase 22 Slice 22B's fetch.ts: one collection fetch (with
+// `_embed=wp:featuredmedia`) plus a follow-up media batch when a mapping
+// references attachments outside the embedded set.
+//
+// ACF values on the seeded posts are currently empty (separate pilot-data
+// issue tracked outside this slice), so the mapping intentionally uses core
+// fields that ARE populated — featured_media + title + excerpt — to prove
+// the fetch path end-to-end. Once ACF values are populated, swap `body` to
+// `acf.short_description` and add `badge: "acf.listing_price"` to extend.
+const WP_URL = "https://acss.whitelabelpress.com";
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<title>{PAGE_META.title}</title>
+		<meta name="description" content={PAGE_META.description} />
+	</head>
+
+	<body class="bg-white text-slate-900 antialiased">
+		<main class="mx-auto max-w-6xl px-6 py-16">
+			<header class="mb-12">
+				<p class="text-xs font-mono uppercase tracking-widest text-slate-500">// COLLECTION_GRID_SMOKE</p>
+				<h1 class="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">Properties</h1>
+				<p class="mt-4 max-w-2xl text-lg text-slate-600">
+					Schema-driven render of the WordPress <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm">property</code> CPT
+					via <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm">@whitelabelpress/astro-sections</code>.
+					No per-CPT fetch loop in this file — only a mapping.
+				</p>
+			</header>
+
+			<CollectionGrid
+				postType="property"
+				wpUrl={WP_URL}
+				limit={10}
+				orderBy="date"
+				orderDir="desc"
+				mapping={{
+					image: "featured_media",
+					title: "title.rendered",
+					body: "excerpt.rendered",
+				}}
+				variant="card-photo-overlay"
+				emptyText="No properties yet."
+			/>
+		</main>
+
+		<Footer />
+	</body>
+</html>
+
+<style is:global>
+	/* Minimal variant CSS so the smoke render reads as cards rather than a
+	   raw <ul>. Slice 22B's full variant stylesheet ships with the package
+	   later; this is a pilot-local override. */
+	.wlp-collection-grid__list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.5rem;
+	}
+	.wlp-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		border: 1px solid rgb(226 232 240); /* slate-200 */
+		border-radius: 0.75rem;
+		overflow: hidden;
+		background: white;
+	}
+	.wlp-card__image {
+		display: block;
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		object-fit: cover;
+	}
+	.wlp-card__title {
+		font-size: 1.125rem;
+		font-weight: 600;
+		margin: 0;
+		padding: 0 1rem;
+	}
+	.wlp-card__link {
+		text-decoration: none;
+		color: inherit;
+	}
+	.wlp-card__body {
+		font-size: 0.9rem;
+		color: rgb(71 85 105); /* slate-600 */
+		margin: 0;
+		padding: 0 1rem 1rem;
+	}
+	.wlp-card__badge {
+		display: inline-block;
+		margin: 0 1rem;
+		padding: 0.25rem 0.5rem;
+		border-radius: 0.25rem;
+		background: rgb(241 245 249); /* slate-100 */
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: rgb(51 65 85); /* slate-700 */
+		width: fit-content;
+	}
+	.wlp-collection-grid__empty {
+		padding: 4rem 0;
+		text-align: center;
+		color: rgb(100 116 139); /* slate-500 */
+	}
+</style>

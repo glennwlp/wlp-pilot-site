@@ -20,6 +20,9 @@ importers:
       '@whitelabelpress/astro-integration':
         specifier: file:./vendor/wlp-astro-integration
         version: file:vendor/wlp-astro-integration(astro@6.3.1(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.3))
+      '@whitelabelpress/astro-sections':
+        specifier: file:./vendor/wlp-astro-sections
+        version: file:vendor/wlp-astro-sections(astro@6.3.1(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.3))
       astro:
         specifier: ^6.3.1
         version: 6.3.1(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.3)
@@ -731,6 +734,11 @@ packages:
 
   '@whitelabelpress/astro-integration@file:vendor/wlp-astro-integration':
     resolution: {directory: vendor/wlp-astro-integration, type: directory}
+    peerDependencies:
+      astro: '>=4.0.0'
+
+  '@whitelabelpress/astro-sections@file:vendor/wlp-astro-sections':
+    resolution: {directory: vendor/wlp-astro-sections, type: directory}
     peerDependencies:
       astro: '>=4.0.0'
 
@@ -2367,6 +2375,10 @@ snapshots:
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@babel/parser': 7.29.3
+      astro: 6.3.1(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.3)
+
+  '@whitelabelpress/astro-sections@file:vendor/wlp-astro-sections(astro@6.3.1(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.3))':
+    dependencies:
       astro: 6.3.1(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.3)
 
   acorn-jsx@5.3.2(acorn@8.16.0):

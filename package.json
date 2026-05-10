@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.2.1",
     "@types/canvas-confetti": "^1.9.0",
     "@whitelabelpress/astro-integration": "file:./vendor/wlp-astro-integration",
+    "@whitelabelpress/astro-sections": "file:./vendor/wlp-astro-sections",
     "astro": "^6.3.1",
     "canvas-confetti": "^1.9.4",
     "tailwindcss": "^4.2.1"
