@@ -9,6 +9,10 @@
 //   - Attribute expression (Slice 2):     `<img src={HERO_CONTENT.image} />`
 //     emits `data-wlp-source` + `data-wlp-kind="image"`. Same for `<source>`,
 //     `<picture>`-children, and `<video>` (kind="video").
+//   - Link href expression (Phase 21A):   `<a href={HERO.ctaHref}>{HERO.ctaLabel}</a>`
+//     emits `data-wlp-link-href="<href-ref>"` ALONGSIDE the Slice 1 emission
+//     for the child text. Picker reads both, EditPanel renders a link-edit
+//     variant that mutates both fields atomically.
 //
 // NOT covered yet (acceptable; upgrade in a follow-up):
 //   - expressions inside JSX-style helpers (e.g. `{items.map((it) => ...)}`)
@@ -67,9 +71,6 @@ export function wlpAstroVitePlugin(options = {}) {
                 const code = await fs.readFile(cleanId, "utf-8");
                 const relPath = toRelativePath(id, root);
                 const mutated = await mutateAstroSource(code, relPath);
-                if (mutated && process.env.WLP_DEBUG_DUMP) {
-                    await fs.writeFile(`/tmp/wlp-mutated-${relPath.replace(/\//g, "_")}`, mutated, "utf-8");
-                }
                 return mutated ?? null;
             },
         },
@@ -203,6 +204,31 @@ function collectInsertions(ast, constNames, relPath) {
             break;
         }
     });
+    // (3) Phase 21A — `<a href={X.y}>` case. Walk again, this time looking
+    // only at <a> elements. The href expression resolves into a SECOND
+    // attribute (data-wlp-link-href) that lives alongside the Slice 1
+    // data-wlp-source emission for the link's child text. A link with
+    // BOTH a content-constant text expression AND a content-constant href
+    // ends up with two attrs on one tag, which is what the picker reads
+    // to know "this is a link, edit both fields."
+    walk(ast, [], (node) => {
+        if (node.type !== "element")
+            return;
+        const el = node;
+        if (el.name !== "a")
+            return;
+        for (const attr of el.attributes) {
+            if (attr.kind !== "expression")
+                continue;
+            if (attr.name !== "href")
+                continue;
+            const sourceRef = analyzeExpressionString(attr.value, constNames, relPath);
+            if (!sourceRef)
+                continue;
+            pushLinkHref(byElement, el, sourceRef);
+            break; // First href expression wins — second occurrence would be a parser anomaly.
+        }
+    });
     return Array.from(byElement.values());
 }
 function maybePush(byElement, el, sourceRef, kind) {
@@ -225,6 +251,37 @@ function maybePush(byElement, el, sourceRef, kind) {
     byElement.set(startOffset, {
         offset: startOffset + tagOpenLen,
         text,
+    });
+}
+/**
+ * Phase 21A — append a `data-wlp-link-href` attribute to an <a> element's
+ * existing insertion (or create a new insertion if Slice 1 didn't fire on
+ * this anchor). Honors the existing manual-attribute opt-out: if the dev
+ * already wrote `data-wlp-link-href` by hand, we don't double-emit.
+ */
+function pushLinkHref(byElement, el, sourceRef) {
+    if (el.attributes.some((a) => a.name === "data-wlp-link-href"))
+        return;
+    const startOffset = el.position?.start?.offset;
+    if (typeof startOffset !== "number")
+        return;
+    if (typeof el.name !== "string" || el.name.length === 0)
+        return;
+    const linkAttr = ` data-wlp-link-href="${escapeAttr(sourceRef)}"`;
+    const existing = byElement.get(startOffset);
+    if (existing) {
+        // The text-ref insertion already exists — append the link-href attr
+        // to its text payload (same insertion offset, wider attribute set).
+        existing.text += linkAttr;
+        return;
+    }
+    // No Slice 1 hit on this anchor — its child text wasn't a content-
+    // constant. The link is still editable (just the href half), so we
+    // emit a fresh insertion carrying only the data-wlp-link-href attr.
+    const tagOpenLen = 1 + el.name.length; // `<tagname`
+    byElement.set(startOffset, {
+        offset: startOffset + tagOpenLen,
+        text: linkAttr,
     });
 }
 function mediaKindForTag(el, ancestors) {

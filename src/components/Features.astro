@@ -6,14 +6,17 @@ const FEATURES_CONTENT = {
 		{
 			title: "Type what you want changed.",
 			body: "Describe the edit in plain English. The agent finds the right file or post, makes the change, and opens a PR for you to review.",
+			id: "",
 		},
 		{
 			title: "Click directly on the page.",
 			body: "Hover any heading, paragraph, or image in the preview pane. Click to open an inline editor. Save sends a PR straight to your repo.",
+			id: "",
 		},
 		{
 			title: "Drop in a comment.",
 			body: "Right-click anywhere to leave a note for your team or hand the rewrite to the AI with a single button. Threads stay attached to the page.",
+			id: "",
 		},
 	],
 };
@@ -36,6 +39,9 @@ const FEATURES_CONTENT = {
 				    + writer accept either source. */}
 				<h3
 					data-wlp-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].title`}
+					data-wlp-id-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].id`}
+					data-wlp-id={item.id}
+					id={item.id || undefined}
 					class="text-xl font-semibold mb-3"
 				>
 					{item.title}
