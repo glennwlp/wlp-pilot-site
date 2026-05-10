@@ -1,0 +1,127 @@
+---
+// CollectionGrid — Phase 22, Slice 22B.
+//
+// Renders a grid of cards from any WordPress post type. The dev never edits
+// per-CPT logic here; the agent (or a developer hand-writing the call)
+// picks paths via the `mapping` prop and the resolver does the lookup.
+//
+// Every binding emits `data-wlp-source="wp:post:<id>:<path>"` so the existing
+// WhitelabelPRESS direct-edit picker works on rendered cards out of the box.
+
+import {
+  resolvePath,
+  asString,
+  asImageUrl,
+  fetchCollection,
+  fetchMediaBatch,
+  attachMediaToPosts,
+  collectMissingMediaIds,
+  type CollectionMapping,
+} from "@whitelabelpress/astro-sections";
+
+export interface Props {
+  /** WordPress rest_base of the target post type, e.g. "property". */
+  postType: string;
+  /** Tenant WP base URL — passed in from the consuming page's frontmatter. */
+  wpUrl: string;
+  /** Max items to render. Default 10. */
+  limit?: number;
+  /** Sort field. Use a core field name, "menu_order", or `acf.<field>`. */
+  orderBy?: "date" | "menu_order" | `acf.${string}`;
+  /** Sort direction. Default "desc". */
+  orderDir?: "asc" | "desc";
+  /** Slot-to-path mapping. `title` is required; rest are optional. */
+  mapping: CollectionMapping;
+  /** CSS variant — must be one of the manifest's declared variants. */
+  variant?: "card-photo-overlay" | "card-side" | "card-stacked";
+  /** Empty-state copy. Default "No items yet." */
+  emptyText?: string;
+}
+
+const {
+  postType,
+  wpUrl,
+  limit = 10,
+  orderBy,
+  orderDir = "desc",
+  mapping,
+  variant = "card-photo-overlay",
+  emptyText = "No items yet.",
+} = Astro.props;
+
+// One round-trip for the collection (with `_embed=wp:featuredmedia`), one
+// follow-up for any image attachments referenced by the mapping that fall
+// outside the embedded set (typical for ACF gallery / image fields).
+const posts = await fetchCollection(postType, {
+  wpUrl,
+  perPage: limit,
+  orderBy,
+  order: orderDir,
+});
+
+const imagePaths = mapping.image ? [mapping.image] : [];
+const missingMediaIds = collectMissingMediaIds(posts, imagePaths);
+const extraMedia = missingMediaIds.length > 0
+  ? await fetchMediaBatch(missingMediaIds, { wpUrl })
+  : [];
+const hydratedPosts = attachMediaToPosts(posts, extraMedia);
+---
+
+<section
+  class:list={["wlp-collection-grid", `wlp-collection-grid--${variant}`]}
+  data-variant={variant}
+  data-post-type={postType}
+>
+  {hydratedPosts.length === 0 ? (
+    <p class="wlp-collection-grid__empty">{emptyText}</p>
+  ) : (
+    <ul class="wlp-collection-grid__list">
+      {hydratedPosts.map((post) => {
+        const titleStr = asString(resolvePath(post, mapping.title));
+        const imageUrl = mapping.image ? asImageUrl(post, resolvePath(post, mapping.image)) : null;
+        const badgeStr = mapping.badge ? asString(resolvePath(post, mapping.badge)) : null;
+        const bodyStr = mapping.body ? asString(resolvePath(post, mapping.body)) : null;
+        const hrefStr =
+          (mapping.href ? asString(resolvePath(post, mapping.href)) : null) ??
+          asString(resolvePath(post, "link")) ??
+          "#";
+
+        return (
+          <li class="wlp-card">
+            {imageUrl && (
+              <img
+                class="wlp-card__image"
+                src={imageUrl}
+                alt={titleStr ?? ""}
+                data-wlp-source={`wp:post:${post.id}:${mapping.image}`}
+              />
+            )}
+            {badgeStr && (
+              <span
+                class="wlp-card__badge"
+                data-wlp-source={`wp:post:${post.id}:${mapping.badge}`}
+              >
+                {badgeStr}
+              </span>
+            )}
+            <a class="wlp-card__link" href={hrefStr}>
+              <h3
+                class="wlp-card__title"
+                data-wlp-source={`wp:post:${post.id}:${mapping.title}`}
+              >
+                {titleStr}
+              </h3>
+            </a>
+            {bodyStr && (
+              <p
+                class="wlp-card__body"
+                data-wlp-source={`wp:post:${post.id}:${mapping.body}`}
+                set:html={bodyStr}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</section>
