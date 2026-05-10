@@ -2,6 +2,7 @@
 const HERO_CONTENT = {
 	eyebrow: "WhitelabelPRESS pilot",
 	headline: "Built for editors who don't want to wait on developers",
+	headlineId: "",
 	body: "A site for the people who actually write the words. Edit headlines, swap images, tweak CTAs — without opening a ticket or learning Git.",
 	ctaPrimaryLabel: "See how it works",
 	ctaPrimaryHref: "#how-it-works",
@@ -14,7 +15,12 @@ const HERO_CONTENT = {
 	<p class="text-sm font-mono uppercase tracking-widest text-purple-600 mb-6">
 		{HERO_CONTENT.eyebrow}
 	</p>
-	<h1 class="text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-8">
+	<h1
+		class="text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-8"
+		data-wlp-id-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineId"
+		data-wlp-id={HERO_CONTENT.headlineId}
+		id={HERO_CONTENT.headlineId || undefined}
+	>
 		{HERO_CONTENT.headline}
 	</h1>
 	<p class="text-xl text-slate-700 leading-relaxed mb-10 max-w-2xl">
