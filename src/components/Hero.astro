@@ -3,26 +3,36 @@ const HERO_CONTENT = {
 	eyebrow: "WhitelabelPRESS pilot",
 	headline: "Built for editors who don't want to wait on developers",
 	headlineId: "",
+	headlineTag: "h1",
 	body: "A site for the people who actually write the words. Edit headlines, swap images, tweak CTAs — without opening a ticket or learning Git.",
 	ctaPrimaryLabel: "See how it works",
 	ctaPrimaryHref: "#how-it-works",
 	ctaSecondaryLabel: "Read the brief",
 	ctaSecondaryHref: "#brief",
 };
+
+// Astro renders capitalized variables as dynamic HTML tags
+// (`const Element = 'h1'; <Element/>` → `<h1>`). Keeping the variable
+// scoped here so the picker can swap headlineTag at content time
+// without needing the AST writer to mutate JSX.
+const HeadlineTag = HERO_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 ---
 
 <section class="px-6 pt-24 pb-32 max-w-4xl mx-auto">
 	<p class="text-sm font-mono uppercase tracking-widest text-purple-600 mb-6">
 		{HERO_CONTENT.eyebrow}
 	</p>
-	<h1
+	<HeadlineTag
 		class="text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-8"
 		data-wlp-id-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineId"
 		data-wlp-id={HERO_CONTENT.headlineId}
+		data-wlp-tag-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineTag"
+		data-wlp-tag={HERO_CONTENT.headlineTag}
+		data-wlp-tag-options="h1,h2,h3,p,span"
 		id={HERO_CONTENT.headlineId || undefined}
 	>
 		{HERO_CONTENT.headline}
-	</h1>
+	</HeadlineTag>
 	<p class="text-xl text-slate-700 leading-relaxed mb-10 max-w-2xl">
 		{HERO_CONTENT.body}
 	</p>
