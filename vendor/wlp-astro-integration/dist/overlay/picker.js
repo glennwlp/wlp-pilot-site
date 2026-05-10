@@ -43,6 +43,20 @@ const ARRAY_INDEX_ATTR = "data-wlp-array-index";
 // row stays a disabled stub.
 const ID_SOURCE_ATTR = "data-wlp-id-source";
 const ID_VALUE_ATTR = "data-wlp-id";
+// Phase 22 — opt-in HTML tag editing (h1 ↔ h2 ↔ h3 ↔ p ↔ span etc.).
+// Astro supports dynamic tags via capitalized variables (`const Element
+// = 'div'; <Element/>`), so a component opts in by binding its element
+// tag to a content-constant string field + emitting these three
+// markers. `data-wlp-tag-source` carries the source-ref of the string
+// field; `data-wlp-tag` snapshots the current tag at render time
+// (independent of any prior live-preview replacement); `data-wlp-tag-
+// options` is a comma-separated allowlist (`"h1,h2,h3"`) the EditPanel
+// uses to populate its dropdown. Live preview swaps the element via
+// document.createElement + attribute/child copy, transferring all
+// `data-wlp-*` markers so future picker actions still resolve.
+const TAG_SOURCE_ATTR = "data-wlp-tag-source";
+const TAG_VALUE_ATTR = "data-wlp-tag";
+const TAG_OPTIONS_ATTR = "data-wlp-tag-options";
 const HOVER_CLASS = "__wlp-hover-highlight";
 const DEFAULT_ALLOWED_ORIGINS = [
     "https://app.whitelabelpress.com",
@@ -234,12 +248,12 @@ function closestPickable(t) {
     if (!t || !(t instanceof Element))
         return null;
     // Phase 21A/B/22: an element is pickable if it carries any of the
-    // editable-marker attributes. Element with only data-wlp-id-source
-    // (and no text ref) is rare in practice — id editing usually rides
-    // alongside a text ref — but kept selectable so the EditPanel can
-    // surface the ID row even on otherwise non-text elements (e.g. an
-    // anchor target marker on a <section> wrapper).
-    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}]`);
+    // editable-marker attributes. Element with only id/tag markers (no
+    // text ref) is rare — those usually ride alongside a text ref — but
+    // kept selectable so the EditPanel can surface those rows even on
+    // otherwise non-text elements (e.g. an anchor target marker on a
+    // <section> wrapper).
+    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}], [${TAG_SOURCE_ATTR}]`);
 }
 function sendContextMenuMessage(el, ev) {
     if (!parentOrigin)
@@ -486,6 +500,20 @@ function sendClickMessage(el) {
     // EditPanel ID row stays a stub.
     const idSourceRef = el.getAttribute(ID_SOURCE_ATTR);
     const currentId = el.getAttribute(ID_VALUE_ATTR);
+    // Phase 22 — opt-in tag editing markers. Same opt-in pattern as id;
+    // tagOptions parsed from the comma-separated attr value. Empty/
+    // missing options means the EditPanel falls back to a small default
+    // set (h1..h3 + p + span) — but author-supplied options always win,
+    // and an empty string explicitly means "no swap allowed".
+    const tagSourceRef = el.getAttribute(TAG_SOURCE_ATTR);
+    const currentTag = el.getAttribute(TAG_VALUE_ATTR);
+    const tagOptionsRaw = el.getAttribute(TAG_OPTIONS_ATTR);
+    const tagOptions = tagOptionsRaw
+        ? tagOptionsRaw
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter((s) => /^[a-z][a-z0-9]*$/.test(s))
+        : undefined;
     const rect = el.getBoundingClientRect();
     const message = {
         type: "wlp:elementClicked",
@@ -500,6 +528,9 @@ function sendClickMessage(el) {
         },
         ...(idSourceRef ? { idSourceRef } : {}),
         ...(currentId !== null ? { currentId } : {}),
+        ...(tagSourceRef ? { tagSourceRef } : {}),
+        ...(currentTag !== null ? { currentTag } : {}),
+        ...(tagOptions && tagOptions.length > 0 ? { tagOptions } : {}),
     };
     window.parent.postMessage(message, parentOrigin);
 }
@@ -534,6 +565,44 @@ function applyLivePreview(sourceRef, newValue, kindHint) {
             if (el instanceof HTMLElement) {
                 el.id = newValue;
             }
+        });
+        return;
+    }
+    // Phase 22 — tag mutation. Destructive: builds a fresh element with
+    // the new tag, copies every attribute (including all `data-wlp-*`
+    // markers + class + id) and child node across, then replaceWith()s
+    // the old. The new element is the same instance going forward; any
+    // outside references to the old element become orphaned, but the
+    // picker holds none (lastHovered clears on next mouseover; click
+    // delegation is document-level). We also update `data-wlp-tag` on
+    // the new element so a subsequent click reads the *new* tag as
+    // "current", matching the source-of-truth contract.
+    if (kindHint === "tag") {
+        const tag = newValue.toLowerCase().trim();
+        // Refuse anything that isn't a plain tag-name token. Prevents an
+        // attacker who somehow controls the kind="tag" payload from
+        // injecting attributes via a crafted "tag" string.
+        if (!/^[a-z][a-z0-9]*$/.test(tag))
+            return;
+        const els = document.querySelectorAll(`[${TAG_SOURCE_ATTR}="${escaped}"]`);
+        els.forEach((el) => {
+            if (!(el instanceof HTMLElement))
+                return;
+            if (el.tagName.toLowerCase() === tag)
+                return; // no-op
+            const fresh = document.createElement(tag);
+            // Copy attributes. NamedNodeMap is live during iteration on
+            // some engines, so snapshot to an array first.
+            const attrs = Array.from(el.attributes);
+            for (const attr of attrs) {
+                fresh.setAttribute(attr.name, attr.value);
+            }
+            // Update the snapshot marker so the next click reads the right
+            // current-tag value.
+            fresh.setAttribute(TAG_VALUE_ATTR, tag);
+            while (el.firstChild)
+                fresh.appendChild(el.firstChild);
+            el.replaceWith(fresh);
         });
         return;
     }
