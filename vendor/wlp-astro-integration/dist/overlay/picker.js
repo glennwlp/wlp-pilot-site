@@ -43,6 +43,14 @@ const ARRAY_INDEX_ATTR = "data-wlp-array-index";
 // row stays a disabled stub.
 const ID_SOURCE_ATTR = "data-wlp-id-source";
 const ID_VALUE_ATTR = "data-wlp-id";
+// Phase 22 — opt-in ARIA label editing. Most-requested attribute control;
+// other ARIA / data-* attrs can follow the same pattern in later phases. A
+// component opts in by emitting `data-wlp-aria-label-source` (source-ref of
+// the content-constant string field) + `data-wlp-aria-label-value` (snapshot
+// of the rendered value). Live preview is `el.setAttribute("aria-label", ...)`
+// or `el.removeAttribute("aria-label")` for empty values.
+const ARIA_LABEL_SOURCE_ATTR = "data-wlp-aria-label-source";
+const ARIA_LABEL_VALUE_ATTR = "data-wlp-aria-label-value";
 // Phase 22 — opt-in HTML tag editing (h1 ↔ h2 ↔ h3 ↔ p ↔ span etc.).
 // Astro supports dynamic tags via capitalized variables (`const Element
 // = 'div'; <Element/>`), so a component opts in by binding its element
@@ -253,7 +261,7 @@ function closestPickable(t) {
     // kept selectable so the EditPanel can surface those rows even on
     // otherwise non-text elements (e.g. an anchor target marker on a
     // <section> wrapper).
-    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}], [${TAG_SOURCE_ATTR}]`);
+    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}], [${TAG_SOURCE_ATTR}], [${ARIA_LABEL_SOURCE_ATTR}]`);
 }
 function sendContextMenuMessage(el, ev) {
     if (!parentOrigin)
@@ -531,6 +539,12 @@ function sendClickMessage(el) {
         ...(tagSourceRef ? { tagSourceRef } : {}),
         ...(currentTag !== null ? { currentTag } : {}),
         ...(tagOptions && tagOptions.length > 0 ? { tagOptions } : {}),
+        ...(el.hasAttribute(ARIA_LABEL_SOURCE_ATTR)
+            ? {
+                ariaLabelSourceRef: el.getAttribute(ARIA_LABEL_SOURCE_ATTR),
+                currentAriaLabel: el.getAttribute(ARIA_LABEL_VALUE_ATTR) ?? "",
+            }
+            : {}),
     };
     window.parent.postMessage(message, parentOrigin);
 }
@@ -565,6 +579,26 @@ function applyLivePreview(sourceRef, newValue, kindHint) {
             if (el instanceof HTMLElement) {
                 el.id = newValue;
             }
+        });
+        return;
+    }
+    // Phase 22 — aria-label mutation. setAttribute / removeAttribute on
+    // the [data-wlp-aria-label-source="…"] match. Empty string clears
+    // the attribute (matches HTML's "no aria-label" state more cleanly
+    // than aria-label=""). Updates the snapshot marker so a subsequent
+    // click reads the right "current" value.
+    if (kindHint === "aria-label") {
+        const els = document.querySelectorAll(`[${ARIA_LABEL_SOURCE_ATTR}="${escaped}"]`);
+        els.forEach((el) => {
+            if (!(el instanceof HTMLElement))
+                return;
+            if (newValue === "") {
+                el.removeAttribute("aria-label");
+            }
+            else {
+                el.setAttribute("aria-label", newValue);
+            }
+            el.setAttribute(ARIA_LABEL_VALUE_ATTR, newValue);
         });
         return;
     }

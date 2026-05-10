@@ -9,18 +9,30 @@ const FEATURES_CONTENT = {
 			body: "Describe the edit in plain English. The agent finds the right file or post, makes the change, and opens a PR for you to review.",
 			id: "",
 			titleTag: "h3",
+			titleAriaLabel: "",
+			bodyId: "",
+			bodyTag: "p",
+			bodyAriaLabel: "",
 		},
 		{
 			title: "Click directly on the page.",
 			body: "Hover any heading, paragraph, or image in the preview pane. Click to open an inline editor. Save sends a PR straight to your repo.",
 			id: "",
 			titleTag: "h3",
+			titleAriaLabel: "",
+			bodyId: "",
+			bodyTag: "p",
+			bodyAriaLabel: "",
 		},
 		{
 			title: "Drop in a comment.",
 			body: "Right-click anywhere to leave a note for your team or hand the rewrite to the AI with a single button. Threads stay attached to the page.",
 			id: "",
 			titleTag: "h3",
+			titleAriaLabel: "",
+			bodyId: "",
+			bodyTag: "p",
+			bodyAriaLabel: "",
 		},
 	],
 };
@@ -45,6 +57,7 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 	<div class="grid md:grid-cols-3 gap-12">
 		{FEATURES_CONTENT.items.map((item, i) => {
 			const ItemTag = item.titleTag as keyof HTMLElementTagNameMap;
+			const ItemBodyTag = item.bodyTag as keyof HTMLElementTagNameMap;
 			return (
 				<div>
 					{/* Hand-annotated: the integration's auto-emission can't see closure
@@ -58,17 +71,29 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 						data-wlp-tag-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleTag`}
 						data-wlp-tag={item.titleTag}
 						data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
+						data-wlp-aria-label-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleAriaLabel`}
+						data-wlp-aria-label-value={item.titleAriaLabel}
 						id={item.id || undefined}
+						aria-label={item.titleAriaLabel || undefined}
 						class="text-xl font-semibold mb-3"
 					>
 						{item.title}
 					</ItemTag>
-					<p
+					<ItemBodyTag
 						data-wlp-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].body`}
+						data-wlp-id-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyId`}
+						data-wlp-id={item.bodyId}
+						data-wlp-tag-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyTag`}
+						data-wlp-tag={item.bodyTag}
+						data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
+						data-wlp-aria-label-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyAriaLabel`}
+						data-wlp-aria-label-value={item.bodyAriaLabel}
+						id={item.bodyId || undefined}
+						aria-label={item.bodyAriaLabel || undefined}
 						class="text-slate-700 leading-relaxed"
 					>
 						{item.body}
-					</p>
+					</ItemBodyTag>
 				</div>
 			);
 		})}

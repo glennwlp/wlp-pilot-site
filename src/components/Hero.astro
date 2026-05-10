@@ -4,7 +4,11 @@ const HERO_CONTENT = {
 	headline: "Built for editors who don't want to wait on developers",
 	headlineId: "",
 	headlineTag: "h1",
+	headlineAriaLabel: "",
 	body: "A site for the people who actually write the words. Edit headlines, swap images, tweak CTAs — without opening a ticket or learning Git.",
+	bodyId: "",
+	bodyTag: "p",
+	bodyAriaLabel: "",
 	ctaPrimaryLabel: "See how it works",
 	ctaPrimaryHref: "#how-it-works",
 	ctaSecondaryLabel: "Read the brief",
@@ -16,6 +20,7 @@ const HERO_CONTENT = {
 // scoped here so the picker can swap headlineTag at content time
 // without needing the AST writer to mutate JSX.
 const HeadlineTag = HERO_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
+const BodyTag = HERO_CONTENT.bodyTag as keyof HTMLElementTagNameMap;
 ---
 
 <section class="px-6 pt-24 pb-32 max-w-4xl mx-auto">
@@ -29,13 +34,28 @@ const HeadlineTag = HERO_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 		data-wlp-tag-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineTag"
 		data-wlp-tag={HERO_CONTENT.headlineTag}
 		data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
+		data-wlp-aria-label-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineAriaLabel"
+		data-wlp-aria-label-value={HERO_CONTENT.headlineAriaLabel}
 		id={HERO_CONTENT.headlineId || undefined}
+		aria-label={HERO_CONTENT.headlineAriaLabel || undefined}
 	>
 		{HERO_CONTENT.headline}
 	</HeadlineTag>
-	<p class="text-xl text-slate-700 leading-relaxed mb-10 max-w-2xl">
+	<BodyTag
+		class="text-xl text-slate-700 leading-relaxed mb-10 max-w-2xl"
+		data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.body"
+		data-wlp-id-source="astro:src/components/Hero.astro:HERO_CONTENT.bodyId"
+		data-wlp-id={HERO_CONTENT.bodyId}
+		data-wlp-tag-source="astro:src/components/Hero.astro:HERO_CONTENT.bodyTag"
+		data-wlp-tag={HERO_CONTENT.bodyTag}
+		data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
+		data-wlp-aria-label-source="astro:src/components/Hero.astro:HERO_CONTENT.bodyAriaLabel"
+		data-wlp-aria-label-value={HERO_CONTENT.bodyAriaLabel}
+		id={HERO_CONTENT.bodyId || undefined}
+		aria-label={HERO_CONTENT.bodyAriaLabel || undefined}
+	>
 		{HERO_CONTENT.body}
-	</p>
+	</BodyTag>
 	<div class="flex flex-wrap gap-4">
 		<a
 			href={HERO_CONTENT.ctaPrimaryHref}
