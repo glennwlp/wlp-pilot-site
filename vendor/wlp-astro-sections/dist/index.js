@@ -7,5 +7,6 @@
 // (and Slice 22C's `insert_section` tool) needs at compile and runtime.
 export { parsePath, resolvePath, asString, asNumber, asImageId, asImageUrl, asPostIds, asArray, } from "./resolver.js";
 export { fetchCollection, fetchPost, fetchMediaBatch, fetchRelatedBatch, attachMediaToPosts, collectMissingMediaIds, AstroSectionsFetchError, } from "./fetch.js";
-export { manifests } from "./manifests.js";
+export { getStaticPathsFor } from "./static-paths.js";
+export { manifests, propsSchemas } from "./manifests.js";
 //# sourceMappingURL=index.js.map
