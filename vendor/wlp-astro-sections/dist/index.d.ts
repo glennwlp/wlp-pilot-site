@@ -4,5 +4,7 @@ export { fetchCollection, fetchPost, fetchMediaBatch, fetchRelatedBatch, attachM
 export type { FetchOptions, CollectionParams } from "./fetch.js";
 export { getStaticPathsFor } from "./static-paths.js";
 export type { GetStaticPathsForOptions } from "./static-paths.js";
+export { formatValue } from "./format.js";
+export type { RowFormat, FormatOptions } from "./format.js";
 export { manifests, propsSchemas } from "./manifests.js";
 //# sourceMappingURL=index.d.ts.map

@@ -7,13 +7,15 @@ import { manifest as collectionList, propsSchema as collectionListProps, } from 
 import { manifest as relatedItems, propsSchema as relatedItemsProps, } from "./components/RelatedItems.manifest.js";
 import { manifest as detailPage, propsSchema as detailPageProps, } from "./components/DetailPage.manifest.js";
 import { manifest as mediaGallery, propsSchema as mediaGalleryProps, } from "./components/MediaGallery.manifest.js";
-// Slice 22B will append: keyValueTable.
+import { manifest as keyValueTable, propsSchema as keyValueTableProps, } from "./components/KeyValueTable.manifest.js";
+// All six Slice 22B primitives shipped.
 export const manifests = [
     collectionGrid,
     collectionList,
     relatedItems,
     detailPage,
     mediaGallery,
+    keyValueTable,
 ];
 /**
  * Per-primitive Zod schemas keyed by manifest `name`. Imported by
@@ -29,5 +31,6 @@ export const propsSchemas = {
     RelatedItems: relatedItemsProps,
     DetailPage: detailPageProps,
     MediaGallery: mediaGalleryProps,
+    KeyValueTable: keyValueTableProps,
 };
 //# sourceMappingURL=manifests.js.map
