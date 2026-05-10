@@ -10,9 +10,11 @@ const FEATURES_CONTENT = {
 			id: "",
 			titleTag: "h3",
 			titleAriaLabel: "",
+			titleLink: "",
 			bodyId: "",
 			bodyTag: "p",
 			bodyAriaLabel: "",
+			bodyLink: "",
 		},
 		{
 			title: "Click directly on the page.",
@@ -20,9 +22,11 @@ const FEATURES_CONTENT = {
 			id: "",
 			titleTag: "h3",
 			titleAriaLabel: "",
+			titleLink: "",
 			bodyId: "",
 			bodyTag: "p",
 			bodyAriaLabel: "",
+			bodyLink: "",
 		},
 		{
 			title: "Drop in a comment.",
@@ -30,14 +34,15 @@ const FEATURES_CONTENT = {
 			id: "",
 			titleTag: "h3",
 			titleAriaLabel: "",
+			titleLink: "",
 			bodyId: "",
 			bodyTag: "p",
 			bodyAriaLabel: "",
+			bodyLink: "",
 		},
 	],
 };
 
-// Capitalized for Astro's dynamic-tag pattern.
 const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 ---
 
@@ -58,42 +63,52 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 		{FEATURES_CONTENT.items.map((item, i) => {
 			const ItemTag = item.titleTag as keyof HTMLElementTagNameMap;
 			const ItemBodyTag = item.bodyTag as keyof HTMLElementTagNameMap;
+			const titleProps = {
+				"data-wlp-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].title`,
+				"data-wlp-id-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].id`,
+				"data-wlp-id": item.id,
+				"data-wlp-tag-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleTag`,
+				"data-wlp-tag": item.titleTag,
+				"data-wlp-tag-options": "h1,h2,h3,h4,h5,h6,div,span,p",
+				"data-wlp-aria-label-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleAriaLabel`,
+				"data-wlp-aria-label-value": item.titleAriaLabel,
+				"data-wlp-link-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleLink`,
+				"data-wlp-link": item.titleLink,
+				id: item.id || undefined,
+				"aria-label": item.titleAriaLabel || undefined,
+				class: "text-xl font-semibold mb-3",
+			};
+			const bodyItemProps = {
+				"data-wlp-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].body`,
+				"data-wlp-id-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyId`,
+				"data-wlp-id": item.bodyId,
+				"data-wlp-tag-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyTag`,
+				"data-wlp-tag": item.bodyTag,
+				"data-wlp-tag-options": "p,span",
+				"data-wlp-aria-label-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyAriaLabel`,
+				"data-wlp-aria-label-value": item.bodyAriaLabel,
+				"data-wlp-link-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyLink`,
+				"data-wlp-link": item.bodyLink,
+				id: item.bodyId || undefined,
+				"aria-label": item.bodyAriaLabel || undefined,
+				class: "text-slate-700 leading-relaxed",
+			};
 			return (
 				<div>
-					{/* Hand-annotated: the integration's auto-emission can't see closure
-					    variables like `item.title` inside .map() — only member chains
-					    rooted at a frontmatter const auto-resolve. The picker overlay
-					    + writer accept either source. */}
-					<ItemTag
-						data-wlp-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].title`}
-						data-wlp-id-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].id`}
-						data-wlp-id={item.id}
-						data-wlp-tag-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleTag`}
-						data-wlp-tag={item.titleTag}
-						data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
-						data-wlp-aria-label-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleAriaLabel`}
-						data-wlp-aria-label-value={item.titleAriaLabel}
-						id={item.id || undefined}
-						aria-label={item.titleAriaLabel || undefined}
-						class="text-xl font-semibold mb-3"
-					>
-						{item.title}
-					</ItemTag>
-					<ItemBodyTag
-						data-wlp-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].body`}
-						data-wlp-id-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyId`}
-						data-wlp-id={item.bodyId}
-						data-wlp-tag-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyTag`}
-						data-wlp-tag={item.bodyTag}
-						data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
-						data-wlp-aria-label-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyAriaLabel`}
-						data-wlp-aria-label-value={item.bodyAriaLabel}
-						id={item.bodyId || undefined}
-						aria-label={item.bodyAriaLabel || undefined}
-						class="text-slate-700 leading-relaxed"
-					>
-						{item.body}
-					</ItemBodyTag>
+					{item.titleLink ? (
+						<a href={item.titleLink} class="text-inherit no-underline">
+							<ItemTag {...titleProps}>{item.title}</ItemTag>
+						</a>
+					) : (
+						<ItemTag {...titleProps}>{item.title}</ItemTag>
+					)}
+					{item.bodyLink ? (
+						<a href={item.bodyLink} class="text-inherit no-underline">
+							<ItemBodyTag {...bodyItemProps}>{item.body}</ItemBodyTag>
+						</a>
+					) : (
+						<ItemBodyTag {...bodyItemProps}>{item.body}</ItemBodyTag>
+					)}
 				</div>
 			);
 		})}
