@@ -8,5 +8,6 @@
 export { parsePath, resolvePath, asString, asNumber, asImageId, asImageUrl, asPostIds, asArray, } from "./resolver.js";
 export { fetchCollection, fetchPost, fetchMediaBatch, fetchRelatedBatch, attachMediaToPosts, collectMissingMediaIds, AstroSectionsFetchError, } from "./fetch.js";
 export { getStaticPathsFor } from "./static-paths.js";
+export { formatValue } from "./format.js";
 export { manifests, propsSchemas } from "./manifests.js";
 //# sourceMappingURL=index.js.map

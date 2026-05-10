@@ -1,0 +1,105 @@
+---
+// KeyValueTable — Phase 22, Slice 22B.
+//
+// Flat label-value table. Each row carries a `field` (FieldPath on the
+// source post) and an optional `format` hint that drives Intl-based
+// rendering for numbers / currencies / dates. Useful for property specs,
+// product attributes, team-member contact info, event metadata.
+//
+// One round-trip: source post (via fetchRelatedBatch single-id, same
+// pattern as <MediaGallery>). Rows whose field doesn't resolve — or
+// resolves to a value the formatter can't coerce — render an em-dash
+// placeholder so a sparse field doesn't break the table.
+
+import {
+  resolvePath,
+  fetchRelatedBatch,
+  formatValue,
+  type FieldPath,
+  type RowFormat,
+} from "@whitelabelpress/astro-sections";
+
+export interface KeyValueRow {
+  /** Human label for the left column. Required. */
+  label: string;
+  /** Field path on the source post. */
+  field: FieldPath;
+  /** Format hint. Default `"text"`. */
+  format?: RowFormat;
+}
+
+export interface Props {
+  /** WP rest_base of the source post's post type. */
+  postType: string;
+  /** Tenant WP base URL. */
+  wpUrl: string;
+  /** ID of the source post. */
+  postId: number;
+  /** Rows to render. Order is preserved. */
+  rows: KeyValueRow[];
+  /** BCP-47 locale tag for Intl formatters. Default `en-US`. */
+  locale?: string;
+  /** ISO 4217 currency code for `format: "currency"` rows. Default `USD`. */
+  currency?: string;
+  /** Placeholder for unresolved values. Default em-dash `"—"`. */
+  emptyCell?: string;
+  /** Empty-state copy when the source post can't be fetched. */
+  emptyText?: string;
+}
+
+const {
+  postType,
+  wpUrl,
+  postId,
+  rows,
+  locale,
+  currency,
+  emptyCell = "—",
+  emptyText = "Not available.",
+} = Astro.props;
+
+const [sourcePost] = await fetchRelatedBatch(postType, [postId], { wpUrl });
+
+interface RenderedRow {
+  label: string;
+  value: string | null;
+  field: FieldPath;
+}
+
+const renderedRows: RenderedRow[] = sourcePost
+  ? rows.map((row) => ({
+      label: row.label,
+      field: row.field,
+      value: formatValue(
+        resolvePath(sourcePost, row.field),
+        row.format ?? "text",
+        {
+          ...(locale ? { locale } : {}),
+          ...(currency ? { currency } : {}),
+        },
+      ),
+    }))
+  : [];
+---
+
+{!sourcePost ? (
+	<p class="wlp-keyvalue__empty">{emptyText}</p>
+) : (
+	<dl
+		class="wlp-keyvalue"
+		data-post-type={postType}
+		data-post-id={postId}
+	>
+		{renderedRows.map((row) => (
+			<div class="wlp-keyvalue__row">
+				<dt class="wlp-keyvalue__label">{row.label}</dt>
+				<dd
+					class="wlp-keyvalue__value"
+					data-wlp-source={`wp:post:${sourcePost.id}:${row.field}`}
+				>
+					{row.value ?? emptyCell}
+				</dd>
+			</div>
+		))}
+	</dl>
+)}

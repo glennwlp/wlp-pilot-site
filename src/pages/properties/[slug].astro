@@ -3,6 +3,7 @@ import '../../styles/global.css';
 import DetailPage from '@whitelabelpress/astro-sections/components/DetailPage.astro';
 import MediaGallery from '@whitelabelpress/astro-sections/components/MediaGallery.astro';
 import RelatedItems from '@whitelabelpress/astro-sections/components/RelatedItems.astro';
+import KeyValueTable from '@whitelabelpress/astro-sections/components/KeyValueTable.astro';
 import { getStaticPathsFor } from '@whitelabelpress/astro-sections';
 import Footer from '../../components/Footer.astro';
 
@@ -46,6 +47,26 @@ const postId = Array.isArray(postArr) && postArr.length > 0 ? postArr[0].id : nu
 					body: 'content.rendered',
 				}}
 			/>
+
+			{postId !== null && (
+				<section class="mt-12 border-t border-slate-200 pt-10">
+					<h2 class="text-xl font-semibold tracking-tight">At a glance</h2>
+					<div class="mt-6">
+						<KeyValueTable
+							postType="property"
+							wpUrl={WP_URL}
+							postId={postId}
+							rows={[
+								{ label: 'Listing price', field: 'acf.listing_price', format: 'currency' },
+								{ label: 'Available from', field: 'acf.availability_date', format: 'date' },
+								{ label: 'Headline', field: 'acf.headline', format: 'text' },
+							]}
+							currency="USD"
+							locale="en-US"
+						/>
+					</div>
+				</section>
+			)}
 
 			{postId !== null && (
 				<section class="mt-16 border-t border-slate-200 pt-10">
@@ -139,6 +160,37 @@ const postId = Array.isArray(postArr) && postArr.length > 0 ? postArr[0].id : nu
 	}
 	.wlp-detail__body p {
 		margin: 0 0 1em;
+	}
+
+	/* KeyValueTable — two-column rows, labels muted, values strong. */
+	.wlp-keyvalue {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		border-top: 1px solid rgb(226 232 240);
+	}
+	.wlp-keyvalue__row {
+		display: grid;
+		grid-template-columns: 200px 1fr;
+		gap: 1.5rem;
+		padding: 0.85rem 0;
+		border-bottom: 1px solid rgb(226 232 240);
+	}
+	.wlp-keyvalue__label {
+		margin: 0;
+		color: rgb(100 116 139);
+		font-size: 0.875rem;
+	}
+	.wlp-keyvalue__value {
+		margin: 0;
+		font-size: 0.95rem;
+		color: rgb(15 23 42);
+	}
+	@media (max-width: 600px) {
+		.wlp-keyvalue__row {
+			grid-template-columns: 1fr;
+			gap: 0.25rem;
+		}
 	}
 
 	/* MediaGallery — square grid with rounded corners. */
