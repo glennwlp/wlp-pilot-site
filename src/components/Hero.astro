@@ -5,57 +5,71 @@ const HERO_CONTENT = {
 	headlineId: "",
 	headlineTag: "h1",
 	headlineAriaLabel: "",
+	headlineLink: "",
 	body: "A site for the people who actually write the words. Edit headlines, swap images, tweak CTAs — without opening a ticket or learning Git.",
 	bodyId: "",
 	bodyTag: "p",
 	bodyAriaLabel: "",
+	bodyLink: "",
 	ctaPrimaryLabel: "See how it works",
 	ctaPrimaryHref: "#how-it-works",
 	ctaSecondaryLabel: "Read the brief",
 	ctaSecondaryHref: "#brief",
 };
 
-// Astro renders capitalized variables as dynamic HTML tags
-// (`const Element = 'h1'; <Element/>` → `<h1>`). Keeping the variable
-// scoped here so the picker can swap headlineTag at content time
-// without needing the AST writer to mutate JSX.
 const HeadlineTag = HERO_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 const BodyTag = HERO_CONTENT.bodyTag as keyof HTMLElementTagNameMap;
+
+const headlineProps = {
+	class: "text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-8",
+	"data-wlp-id-source": "astro:src/components/Hero.astro:HERO_CONTENT.headlineId",
+	"data-wlp-id": HERO_CONTENT.headlineId,
+	"data-wlp-tag-source": "astro:src/components/Hero.astro:HERO_CONTENT.headlineTag",
+	"data-wlp-tag": HERO_CONTENT.headlineTag,
+	"data-wlp-tag-options": "h1,h2,h3,h4,h5,h6,div,span,p",
+	"data-wlp-aria-label-source": "astro:src/components/Hero.astro:HERO_CONTENT.headlineAriaLabel",
+	"data-wlp-aria-label-value": HERO_CONTENT.headlineAriaLabel,
+	"data-wlp-link-source": "astro:src/components/Hero.astro:HERO_CONTENT.headlineLink",
+	"data-wlp-link": HERO_CONTENT.headlineLink,
+	id: HERO_CONTENT.headlineId || undefined,
+	"aria-label": HERO_CONTENT.headlineAriaLabel || undefined,
+};
+
+const bodyProps = {
+	class: "text-xl text-slate-700 leading-relaxed mb-10 max-w-2xl",
+	"data-wlp-source": "astro:src/components/Hero.astro:HERO_CONTENT.body",
+	"data-wlp-id-source": "astro:src/components/Hero.astro:HERO_CONTENT.bodyId",
+	"data-wlp-id": HERO_CONTENT.bodyId,
+	"data-wlp-tag-source": "astro:src/components/Hero.astro:HERO_CONTENT.bodyTag",
+	"data-wlp-tag": HERO_CONTENT.bodyTag,
+	"data-wlp-tag-options": "p,span",
+	"data-wlp-aria-label-source": "astro:src/components/Hero.astro:HERO_CONTENT.bodyAriaLabel",
+	"data-wlp-aria-label-value": HERO_CONTENT.bodyAriaLabel,
+	"data-wlp-link-source": "astro:src/components/Hero.astro:HERO_CONTENT.bodyLink",
+	"data-wlp-link": HERO_CONTENT.bodyLink,
+	id: HERO_CONTENT.bodyId || undefined,
+	"aria-label": HERO_CONTENT.bodyAriaLabel || undefined,
+};
 ---
 
 <section class="px-6 pt-24 pb-32 max-w-4xl mx-auto">
 	<p class="text-sm font-mono uppercase tracking-widest text-purple-600 mb-6">
 		{HERO_CONTENT.eyebrow}
 	</p>
-	<HeadlineTag
-		class="text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-8"
-		data-wlp-id-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineId"
-		data-wlp-id={HERO_CONTENT.headlineId}
-		data-wlp-tag-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineTag"
-		data-wlp-tag={HERO_CONTENT.headlineTag}
-		data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
-		data-wlp-aria-label-source="astro:src/components/Hero.astro:HERO_CONTENT.headlineAriaLabel"
-		data-wlp-aria-label-value={HERO_CONTENT.headlineAriaLabel}
-		id={HERO_CONTENT.headlineId || undefined}
-		aria-label={HERO_CONTENT.headlineAriaLabel || undefined}
-	>
-		{HERO_CONTENT.headline}
-	</HeadlineTag>
-	<BodyTag
-		class="text-xl text-slate-700 leading-relaxed mb-10 max-w-2xl"
-		data-wlp-source="astro:src/components/Hero.astro:HERO_CONTENT.body"
-		data-wlp-id-source="astro:src/components/Hero.astro:HERO_CONTENT.bodyId"
-		data-wlp-id={HERO_CONTENT.bodyId}
-		data-wlp-tag-source="astro:src/components/Hero.astro:HERO_CONTENT.bodyTag"
-		data-wlp-tag={HERO_CONTENT.bodyTag}
-		data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
-		data-wlp-aria-label-source="astro:src/components/Hero.astro:HERO_CONTENT.bodyAriaLabel"
-		data-wlp-aria-label-value={HERO_CONTENT.bodyAriaLabel}
-		id={HERO_CONTENT.bodyId || undefined}
-		aria-label={HERO_CONTENT.bodyAriaLabel || undefined}
-	>
-		{HERO_CONTENT.body}
-	</BodyTag>
+	{HERO_CONTENT.headlineLink ? (
+		<a href={HERO_CONTENT.headlineLink} class="text-inherit no-underline">
+			<HeadlineTag {...headlineProps}>{HERO_CONTENT.headline}</HeadlineTag>
+		</a>
+	) : (
+		<HeadlineTag {...headlineProps}>{HERO_CONTENT.headline}</HeadlineTag>
+	)}
+	{HERO_CONTENT.bodyLink ? (
+		<a href={HERO_CONTENT.bodyLink} class="text-inherit no-underline">
+			<BodyTag {...bodyProps}>{HERO_CONTENT.body}</BodyTag>
+		</a>
+	) : (
+		<BodyTag {...bodyProps}>{HERO_CONTENT.body}</BodyTag>
+	)}
 	<div class="flex flex-wrap gap-4">
 		<a
 			href={HERO_CONTENT.ctaPrimaryHref}

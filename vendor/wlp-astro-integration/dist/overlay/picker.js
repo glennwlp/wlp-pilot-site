@@ -65,6 +65,18 @@ const ARIA_LABEL_VALUE_ATTR = "data-wlp-aria-label-value";
 const TAG_SOURCE_ATTR = "data-wlp-tag-source";
 const TAG_VALUE_ATTR = "data-wlp-tag";
 const TAG_OPTIONS_ATTR = "data-wlp-tag-options";
+// Phase 22 — opt-in "wrap this element in <a href>" link editing for
+// elements that are NOT themselves <a> tags (Phase 21A's
+// data-wlp-link-href handles native <a>). A heading/paragraph opts
+// in via `data-wlp-link-source` (source-ref of the URL string field)
+// + `data-wlp-link` (snapshot of the value). Empty value means "not
+// linked"; live preview wraps the element in a freshly-created <a>
+// when the user types a URL, updates the href when re-typing on an
+// already-wrapped element, and unwraps when the value clears. The
+// Astro template should also conditionally wrap at render time so
+// subsequent page loads stay consistent.
+const LINK_SOURCE_ATTR = "data-wlp-link-source";
+const LINK_VALUE_ATTR = "data-wlp-link";
 const HOVER_CLASS = "__wlp-hover-highlight";
 const DEFAULT_ALLOWED_ORIGINS = [
     "https://app.whitelabelpress.com",
@@ -261,7 +273,7 @@ function closestPickable(t) {
     // kept selectable so the EditPanel can surface those rows even on
     // otherwise non-text elements (e.g. an anchor target marker on a
     // <section> wrapper).
-    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}], [${TAG_SOURCE_ATTR}], [${ARIA_LABEL_SOURCE_ATTR}]`);
+    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}], [${TAG_SOURCE_ATTR}], [${ARIA_LABEL_SOURCE_ATTR}], [${LINK_SOURCE_ATTR}]`);
 }
 function sendContextMenuMessage(el, ev) {
     if (!parentOrigin)
@@ -545,6 +557,12 @@ function sendClickMessage(el) {
                 currentAriaLabel: el.getAttribute(ARIA_LABEL_VALUE_ATTR) ?? "",
             }
             : {}),
+        ...(el.hasAttribute(LINK_SOURCE_ATTR)
+            ? {
+                linkWrapSourceRef: el.getAttribute(LINK_SOURCE_ATTR),
+                currentLinkWrap: el.getAttribute(LINK_VALUE_ATTR) ?? "",
+            }
+            : {}),
     };
     window.parent.postMessage(message, parentOrigin);
 }
@@ -579,6 +597,45 @@ function applyLivePreview(sourceRef, newValue, kindHint) {
             if (el instanceof HTMLElement) {
                 el.id = newValue;
             }
+        });
+        return;
+    }
+    // Phase 22 — link-wrap mutation. The picked element opted into the
+    // "wrap me in <a href>" pattern via data-wlp-link-source. Three
+    // states: (1) value cleared and not currently wrapped → no-op;
+    // (2) value cleared but parent is the auto-wrap <a> → unwrap;
+    // (3) value set: wrap fresh, or update href on the existing wrap.
+    // The wrap <a> is identified by the presence of `data-wlp-link-wrap`
+    // on the parent; the picker's own creation tags it so we don't
+    // accidentally unwrap a hand-authored <a> the component happens to
+    // already live inside.
+    if (kindHint === "link-wrap") {
+        const els = document.querySelectorAll(`[${LINK_SOURCE_ATTR}="${escaped}"]`);
+        els.forEach((el) => {
+            if (!(el instanceof HTMLElement))
+                return;
+            const parent = el.parentElement;
+            const isAutoWrapped = parent instanceof HTMLAnchorElement &&
+                parent.hasAttribute("data-wlp-link-wrap") &&
+                parent.children.length === 1;
+            if (newValue === "") {
+                if (isAutoWrapped) {
+                    parent.replaceWith(el);
+                }
+            }
+            else {
+                if (isAutoWrapped) {
+                    parent.setAttribute("href", newValue);
+                }
+                else {
+                    const a = document.createElement("a");
+                    a.setAttribute("href", newValue);
+                    a.setAttribute("data-wlp-link-wrap", "");
+                    el.replaceWith(a);
+                    a.appendChild(el);
+                }
+            }
+            el.setAttribute(LINK_VALUE_ATTR, newValue);
         });
         return;
     }
