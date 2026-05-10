@@ -11,14 +11,20 @@ const PAGE_META = {
 // Pilot WP — schema-driven render of the `property` CPT seeded by
 // `wlp-pilot-property.php`. The grid below is the live verification surface
 // for Phase 22 Slice 22B's fetch.ts: one collection fetch (with
-// `_embed=wp:featuredmedia`) plus a follow-up media batch when a mapping
-// references attachments outside the embedded set.
+// `_embed=wp:featuredmedia`) plus a follow-up media batch for the gallery
+// attachment IDs that fall outside the embedded set.
 //
-// ACF values on the seeded posts are currently empty (separate pilot-data
-// issue tracked outside this slice), so the mapping intentionally uses core
-// fields that ARE populated — featured_media + title + excerpt — to prove
-// the fetch path end-to-end. Once ACF values are populated, swap `body` to
-// `acf.short_description` and add `badge: "acf.listing_price"` to extend.
+// Mapping uses ACF fields populated by the v0.2.0 seed reseed:
+//   - acf.gallery[0]         → first gallery image (int ID → fetched via
+//                              the missing-media batch → resolved by
+//                              asImageUrl against the folded _embedded set)
+//   - title.rendered         → card title
+//   - acf.listing_price      → badge (raw number; unformatted is fine for
+//                              the smoke, currency formatting is a slice 22D
+//                              concern via <KeyValueTable format='currency'>)
+//   - acf.short_description  → card body (wysiwyg → HTML; rendered via
+//                              set:html={} which is already wired in the
+//                              primitive)
 const WP_URL = "https://acss.whitelabelpress.com";
 ---
 
@@ -51,9 +57,10 @@ const WP_URL = "https://acss.whitelabelpress.com";
 				orderBy="date"
 				orderDir="desc"
 				mapping={{
-					image: "featured_media",
+					image: "acf.gallery[0]",
 					title: "title.rendered",
-					body: "excerpt.rendered",
+					badge: "acf.listing_price",
+					body: "acf.short_description",
 				}}
 				variant="card-photo-overlay"
 				emptyText="No properties yet."
