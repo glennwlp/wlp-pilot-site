@@ -1,0 +1,125 @@
+---
+// MediaGallery — Phase 22, Slice 22B.
+//
+// Renders an ACF gallery field as a CSS grid of images. Three round-trips:
+//   1. fetchRelatedBatch(postType, [postId]) — source post lookup
+//      (reused as a single-id post-by-id fetch — fetchPost only takes a
+//      slug, but the gallery field is bound to a numeric id).
+//   2. resolvePath(post, field) → array of attachment ids OR objects.
+//   3. fetchMediaBatch(ids) — one batched call for the attachment URLs.
+//
+// Every image emits `data-wlp-source` so the picker can locate
+// individual gallery items.
+
+import {
+  resolvePath,
+  asString,
+  asImageUrl,
+  asArray,
+  asImageId,
+  fetchRelatedBatch,
+  fetchMediaBatch,
+  attachMediaToPosts,
+  type FieldPath,
+  type WpPost,
+} from "@whitelabelpress/astro-sections";
+
+export interface Props {
+  /** WP rest_base of the source post's post type, e.g. "property". */
+  postType: string;
+  /** Tenant WP base URL. */
+  wpUrl: string;
+  /** ID of the post whose gallery we render. */
+  postId: number;
+  /** Field path on the source post. Typically `acf.gallery`. */
+  field: FieldPath;
+  /** Optional alt-text path on each item. ACF objects expose `.alt`/`.alt_text`. */
+  altField?: FieldPath;
+  /** Layout variant. The .wlp-media-gallery wrapper always carries data-variant. */
+  variant?: "grid" | "masonry" | "lightbox";
+  /** Cap on rendered items. */
+  limit?: number;
+  /** Empty-state copy when the field doesn't resolve. */
+  emptyText?: string;
+}
+
+const {
+  postType,
+  wpUrl,
+  postId,
+  field,
+  variant = "grid",
+  limit,
+  emptyText = "No images.",
+} = Astro.props;
+
+// 1. Source post.
+const [sourcePost] = await fetchRelatedBatch(postType, [postId], { wpUrl });
+
+// 2. Read the gallery field. ACF `return_format=array` produces objects with
+//    `.id`/`.url`/`.alt`; `return_format=id` produces a flat number array.
+//    Normalize to a list of attachment ids.
+let attachmentIds: number[] = [];
+const attachmentRefs: Array<unknown> = [];
+if (sourcePost) {
+  const raw = resolvePath(sourcePost, field);
+  const arr = asArray(raw) ?? [];
+  for (const item of arr) {
+    const id = asImageId(item);
+    if (id != null) attachmentIds.push(id);
+    attachmentRefs.push(item); // keep originals so we can use embedded URLs / alts
+  }
+}
+if (limit != null) attachmentIds = attachmentIds.slice(0, limit);
+
+// 3. Fetch any attachments not already embedded on the source post. Use the
+//    same fold helper so `asImageUrl(post, id)` works downstream.
+const present = new Set(
+  (sourcePost?._embedded?.["wp:featuredmedia"] ?? []).map((m) => m.id),
+);
+const missing = attachmentIds.filter((id) => !present.has(id));
+const extraMedia = missing.length > 0
+  ? await fetchMediaBatch(missing, { wpUrl })
+  : [];
+const [hydrated] = sourcePost
+  ? attachMediaToPosts([sourcePost], extraMedia)
+  : [undefined];
+
+const items: Array<{ id: number; url: string | null; alt: string | null; ref: unknown }> = [];
+for (let i = 0; i < attachmentIds.length; i++) {
+  const id = attachmentIds[i]!;
+  const ref = attachmentRefs[i];
+  const url = hydrated ? asImageUrl(hydrated, id) : null;
+  let alt: string | null = null;
+  if (ref && typeof ref === "object") {
+    const obj = ref as Record<string, unknown>;
+    alt = asString(obj.alt) ?? asString(obj.alt_text) ?? null;
+  }
+  items.push({ id, url, alt, ref });
+}
+const renderable = items.filter((it) => it.url);
+---
+
+{renderable.length === 0 ? (
+	<p class="wlp-media-gallery__empty">{emptyText}</p>
+) : (
+	<section
+		class:list={["wlp-media-gallery", `wlp-media-gallery--${variant}`]}
+		data-variant={variant}
+		data-post-type={postType}
+		data-post-id={postId}
+	>
+		<ul class="wlp-media-gallery__list">
+			{renderable.map((item, idx) => (
+				<li class="wlp-media-gallery__item">
+					<img
+						class="wlp-media-gallery__image"
+						src={item.url}
+						alt={item.alt ?? ""}
+						data-wlp-source={`wp:post:${(hydrated as WpPost).id}:${field}[${idx}]`}
+					/>
+				</li>
+			))}
+		</ul>
+	</section>
+)}

@@ -1,0 +1,169 @@
+---
+// DetailPage — Phase 22, Slice 22B.
+//
+// Single-CPT-entry route surface. Fetches one post by slug, renders a hero
+// (image + title + subtitle + badge) plus a body block. Pairs with
+// `getStaticPathsFor(restBase)` from the package's TS index, so the entire
+// per-post route file is two imports + one mapping prop:
+//
+//   ---
+//   import DetailPage from "@whitelabelpress/astro-sections/components/DetailPage.astro";
+//   import { getStaticPathsFor } from "@whitelabelpress/astro-sections";
+//
+//   export const getStaticPaths = getStaticPathsFor("property", {
+//     wpUrl: "https://acss.whitelabelpress.com",
+//   });
+//
+//   const { slug } = Astro.params;
+//   ---
+//   <DetailPage
+//     postType="property"
+//     wpUrl="https://acss..."
+//     slug={slug}
+//     mapping={{
+//       hero: {
+//         image: "acf.gallery[0]",
+//         title: "title.rendered",
+//         subtitle: "acf.headline",
+//         badge: "acf.listing_price",
+//       },
+//       body: "content.rendered",
+//     }}
+//   />
+//
+// Sections / sidebar / related-items composition is deferred to a follow-
+// up — the cuts list explicitly permits a hero-plus-body MVP for this slice.
+
+import {
+  resolvePath,
+  asString,
+  asImageUrl,
+  fetchPost,
+  fetchMediaBatch,
+  attachMediaToPosts,
+  collectMissingMediaIds,
+  type FieldPath,
+} from "@whitelabelpress/astro-sections";
+
+export interface DetailHeroMapping {
+  /** Path to the hero image. Resolves to URL via `_embed` or media batch. */
+  image?: FieldPath;
+  /** Required — the post's title. */
+  title: FieldPath;
+  /** Optional secondary line under the title. */
+  subtitle?: FieldPath;
+  /** Optional badge — usually a price / status / category label. */
+  badge?: FieldPath;
+  /** Optional override of the link target. Defaults to the post's permalink. */
+  href?: FieldPath;
+}
+
+export interface DetailMapping {
+  hero: DetailHeroMapping;
+  /** Path to the body HTML/text. Common values: `content.rendered`, `acf.long_description`. */
+  body?: FieldPath;
+}
+
+export interface Props {
+  /** WP rest_base of the post type, e.g. "property". */
+  postType: string;
+  /** Tenant WP base URL. */
+  wpUrl: string;
+  /** Post slug — typically `Astro.params.slug` from the dynamic route. */
+  slug: string;
+  /** Slot mapping. `hero.title` is required; all others optional. */
+  mapping: DetailMapping;
+  /** Empty-state copy when the slug doesn't resolve. Default "Not found." */
+  emptyText?: string;
+}
+
+const {
+  postType,
+  wpUrl,
+  slug,
+  mapping,
+  emptyText = "Not found.",
+} = Astro.props;
+
+const post = await fetchPost(postType, slug, { wpUrl });
+
+let resolvedPost = post;
+if (post && mapping.hero.image) {
+  const missing = collectMissingMediaIds([post], [mapping.hero.image]);
+  if (missing.length > 0) {
+    const media = await fetchMediaBatch(missing, { wpUrl });
+    [resolvedPost] = attachMediaToPosts([post], media);
+  }
+}
+
+const titleStr = resolvedPost ? asString(resolvePath(resolvedPost, mapping.hero.title)) : null;
+const imageUrl =
+  resolvedPost && mapping.hero.image
+    ? asImageUrl(resolvedPost, resolvePath(resolvedPost, mapping.hero.image))
+    : null;
+const subtitleStr =
+  resolvedPost && mapping.hero.subtitle
+    ? asString(resolvePath(resolvedPost, mapping.hero.subtitle))
+    : null;
+const badgeStr =
+  resolvedPost && mapping.hero.badge
+    ? asString(resolvePath(resolvedPost, mapping.hero.badge))
+    : null;
+const bodyStr =
+  resolvedPost && mapping.body
+    ? asString(resolvePath(resolvedPost, mapping.body))
+    : null;
+---
+
+{!resolvedPost ? (
+	<p class="wlp-detail__empty">{emptyText}</p>
+) : (
+	<article
+		class="wlp-detail"
+		data-post-type={postType}
+		data-post-slug={slug}
+	>
+		<header class="wlp-detail__hero">
+			{imageUrl && (
+				<div class="wlp-detail__image">
+					<img
+						src={imageUrl}
+						alt={titleStr ?? ""}
+						data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.hero.image}`}
+					/>
+				</div>
+			)}
+			<div class="wlp-detail__heading">
+				{badgeStr && (
+					<span
+						class="wlp-detail__badge"
+						data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.hero.badge}`}
+					>
+						{badgeStr}
+					</span>
+				)}
+				<h1
+					class="wlp-detail__title"
+					data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.hero.title}`}
+				>
+					{titleStr}
+				</h1>
+				{subtitleStr && (
+					<p
+						class="wlp-detail__subtitle"
+						data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.hero.subtitle}`}
+					>
+						{subtitleStr}
+					</p>
+				)}
+			</div>
+		</header>
+		{bodyStr && (
+			<div
+				class="wlp-detail__body"
+				data-wlp-source={`wp:post:${resolvedPost.id}:${mapping.body}`}
+				set:html={bodyStr}
+			/>
+		)}
+	</article>
+)}

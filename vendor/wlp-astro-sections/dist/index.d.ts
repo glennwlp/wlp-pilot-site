@@ -2,5 +2,7 @@ export type { FieldPath, WpPost, EmbeddedMedia, SlotKind, SlotDef, SectionManife
 export { parsePath, resolvePath, asString, asNumber, asImageId, asImageUrl, asPostIds, asArray, } from "./resolver.js";
 export { fetchCollection, fetchPost, fetchMediaBatch, fetchRelatedBatch, attachMediaToPosts, collectMissingMediaIds, AstroSectionsFetchError, } from "./fetch.js";
 export type { FetchOptions, CollectionParams } from "./fetch.js";
-export { manifests } from "./manifests.js";
+export { getStaticPathsFor } from "./static-paths.js";
+export type { GetStaticPathsForOptions } from "./static-paths.js";
+export { manifests, propsSchemas } from "./manifests.js";
 //# sourceMappingURL=index.d.ts.map
