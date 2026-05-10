@@ -37,7 +37,7 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 		class="text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-16 max-w-2xl"
 		data-wlp-tag-source="astro:src/components/Features.astro:FEATURES_CONTENT.headlineTag"
 		data-wlp-tag={FEATURES_CONTENT.headlineTag}
-		data-wlp-tag-options="h1,h2,h3,p"
+		data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
 	>
 		{FEATURES_CONTENT.headline}
 	</HeadlineTag>
@@ -57,7 +57,7 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 						data-wlp-id={item.id}
 						data-wlp-tag-source={`astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleTag`}
 						data-wlp-tag={item.titleTag}
-						data-wlp-tag-options="h2,h3,h4,p"
+						data-wlp-tag-options="h1,h2,h3,h4,h5,h6,div,span,p"
 						id={item.id || undefined}
 						class="text-xl font-semibold mb-3"
 					>
