@@ -6,11 +6,13 @@ const HERO_CONTENT = {
 	headlineTag: "h1",
 	headlineAriaLabel: "",
 	headlineLink: "",
+	headlineLinkTarget: "",
 	body: "A site for the people who actually write the words. Edit headlines, swap images, tweak CTAs — without opening a ticket or learning Git.",
 	bodyId: "",
 	bodyTag: "p",
 	bodyAriaLabel: "",
 	bodyLink: "",
+	bodyLinkTarget: "",
 	ctaPrimaryLabel: "See how it works",
 	ctaPrimaryHref: "#how-it-works",
 	ctaSecondaryLabel: "Read the brief",
@@ -31,6 +33,8 @@ const headlineProps = {
 	"data-wlp-aria-label-value": HERO_CONTENT.headlineAriaLabel,
 	"data-wlp-link-source": "astro:src/components/Hero.astro:HERO_CONTENT.headlineLink",
 	"data-wlp-link": HERO_CONTENT.headlineLink,
+	"data-wlp-link-target-source": "astro:src/components/Hero.astro:HERO_CONTENT.headlineLinkTarget",
+	"data-wlp-link-target-value": HERO_CONTENT.headlineLinkTarget,
 	id: HERO_CONTENT.headlineId || undefined,
 	"aria-label": HERO_CONTENT.headlineAriaLabel || undefined,
 };
@@ -47,6 +51,8 @@ const bodyProps = {
 	"data-wlp-aria-label-value": HERO_CONTENT.bodyAriaLabel,
 	"data-wlp-link-source": "astro:src/components/Hero.astro:HERO_CONTENT.bodyLink",
 	"data-wlp-link": HERO_CONTENT.bodyLink,
+	"data-wlp-link-target-source": "astro:src/components/Hero.astro:HERO_CONTENT.bodyLinkTarget",
+	"data-wlp-link-target-value": HERO_CONTENT.bodyLinkTarget,
 	id: HERO_CONTENT.bodyId || undefined,
 	"aria-label": HERO_CONTENT.bodyAriaLabel || undefined,
 };
@@ -57,14 +63,24 @@ const bodyProps = {
 		{HERO_CONTENT.eyebrow}
 	</p>
 	{HERO_CONTENT.headlineLink ? (
-		<a href={HERO_CONTENT.headlineLink} class="text-inherit no-underline">
+		<a
+			href={HERO_CONTENT.headlineLink}
+			class="text-inherit no-underline"
+			target={HERO_CONTENT.headlineLinkTarget === "_blank" ? "_blank" : undefined}
+			rel={HERO_CONTENT.headlineLinkTarget === "_blank" ? "noopener noreferrer" : undefined}
+		>
 			<HeadlineTag {...headlineProps}>{HERO_CONTENT.headline}</HeadlineTag>
 		</a>
 	) : (
 		<HeadlineTag {...headlineProps}>{HERO_CONTENT.headline}</HeadlineTag>
 	)}
 	{HERO_CONTENT.bodyLink ? (
-		<a href={HERO_CONTENT.bodyLink} class="text-inherit no-underline">
+		<a
+			href={HERO_CONTENT.bodyLink}
+			class="text-inherit no-underline"
+			target={HERO_CONTENT.bodyLinkTarget === "_blank" ? "_blank" : undefined}
+			rel={HERO_CONTENT.bodyLinkTarget === "_blank" ? "noopener noreferrer" : undefined}
+		>
 			<BodyTag {...bodyProps}>{HERO_CONTENT.body}</BodyTag>
 		</a>
 	) : (
