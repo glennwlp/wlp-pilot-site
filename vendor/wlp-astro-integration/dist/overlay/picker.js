@@ -77,6 +77,14 @@ const TAG_OPTIONS_ATTR = "data-wlp-tag-options";
 // subsequent page loads stay consistent.
 const LINK_SOURCE_ATTR = "data-wlp-link-source";
 const LINK_VALUE_ATTR = "data-wlp-link";
+// Phase 22 — companion field to LINK_SOURCE_ATTR. Holds a "_blank" / ""
+// string. The toggle in EditPanel only appears when the link URL has a
+// value; staging "_blank" applies target="_blank" + rel="noopener
+// noreferrer" on the wrap <a> at render time. Modeled as a string field
+// (not boolean) so the existing AST string-literal writer + set_text op
+// handle it without a new code path.
+const LINK_TARGET_SOURCE_ATTR = "data-wlp-link-target-source";
+const LINK_TARGET_VALUE_ATTR = "data-wlp-link-target-value";
 const HOVER_CLASS = "__wlp-hover-highlight";
 const DEFAULT_ALLOWED_ORIGINS = [
     "https://app.whitelabelpress.com",
@@ -273,7 +281,7 @@ function closestPickable(t) {
     // kept selectable so the EditPanel can surface those rows even on
     // otherwise non-text elements (e.g. an anchor target marker on a
     // <section> wrapper).
-    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}], [${TAG_SOURCE_ATTR}], [${ARIA_LABEL_SOURCE_ATTR}], [${LINK_SOURCE_ATTR}]`);
+    return t.closest(`[${DATA_ATTR}], [${LINK_HREF_ATTR}], [${ARRAY_PARENT_ATTR}], [${ID_SOURCE_ATTR}], [${TAG_SOURCE_ATTR}], [${ARIA_LABEL_SOURCE_ATTR}], [${LINK_SOURCE_ATTR}], [${LINK_TARGET_SOURCE_ATTR}]`);
 }
 function sendContextMenuMessage(el, ev) {
     if (!parentOrigin)
@@ -563,6 +571,12 @@ function sendClickMessage(el) {
                 currentLinkWrap: el.getAttribute(LINK_VALUE_ATTR) ?? "",
             }
             : {}),
+        ...(el.hasAttribute(LINK_TARGET_SOURCE_ATTR)
+            ? {
+                linkTargetSourceRef: el.getAttribute(LINK_TARGET_SOURCE_ATTR),
+                currentLinkTarget: el.getAttribute(LINK_TARGET_VALUE_ATTR) ?? "",
+            }
+            : {}),
     };
     window.parent.postMessage(message, parentOrigin);
 }
@@ -631,11 +645,53 @@ function applyLivePreview(sourceRef, newValue, kindHint) {
                     const a = document.createElement("a");
                     a.setAttribute("href", newValue);
                     a.setAttribute("data-wlp-link-wrap", "");
+                    // Carry over a previously-staged target="_blank" when we
+                    // wrap fresh — otherwise the toggle visually flicks off
+                    // for a frame between link stage and target re-application.
+                    const target = el.getAttribute(LINK_TARGET_VALUE_ATTR);
+                    if (target === "_blank") {
+                        a.setAttribute("target", "_blank");
+                        a.setAttribute("rel", "noopener noreferrer");
+                    }
                     el.replaceWith(a);
                     a.appendChild(el);
                 }
             }
             el.setAttribute(LINK_VALUE_ATTR, newValue);
+        });
+        return;
+    }
+    // Phase 22 — link-target mutation. Toggles target="_blank" + the
+    // mandatory rel="noopener noreferrer" pair on the wrap <a>. The
+    // selector is [data-wlp-link-target-source="…"] (on the picked
+    // element itself, not on the wrap), then we walk to the parent if
+    // it's the auto-generated wrap. When there's no wrap yet (user typed
+    // a URL into the toggle without staging the link first, or the wrap
+    // is mid-creation by a prior link-wrap message) the lookup is silent
+    // — the next link-wrap render will pick up the staged target value.
+    // rel is rendered together with target: noopener-noreferrer guards
+    // against reverse-tabnabbing (window.opener = …). Marker stays in
+    // sync so re-picking the element reads the right "current" value.
+    if (kindHint === "link-target") {
+        const els = document.querySelectorAll(`[${LINK_TARGET_SOURCE_ATTR}="${escaped}"]`);
+        els.forEach((el) => {
+            if (!(el instanceof HTMLElement))
+                return;
+            el.setAttribute(LINK_TARGET_VALUE_ATTR, newValue);
+            const parent = el.parentElement;
+            const isAutoWrapped = parent instanceof HTMLAnchorElement &&
+                parent.hasAttribute("data-wlp-link-wrap") &&
+                parent.children.length === 1;
+            if (!isAutoWrapped)
+                return;
+            if (newValue === "_blank") {
+                parent.setAttribute("target", "_blank");
+                parent.setAttribute("rel", "noopener noreferrer");
+            }
+            else {
+                parent.removeAttribute("target");
+                parent.removeAttribute("rel");
+            }
         });
         return;
     }

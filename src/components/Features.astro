@@ -11,10 +11,12 @@ const FEATURES_CONTENT = {
 			titleTag: "h3",
 			titleAriaLabel: "",
 			titleLink: "",
+			titleLinkTarget: "",
 			bodyId: "",
 			bodyTag: "p",
 			bodyAriaLabel: "",
 			bodyLink: "",
+			bodyLinkTarget: "",
 		},
 		{
 			title: "Click directly on the page.",
@@ -23,10 +25,12 @@ const FEATURES_CONTENT = {
 			titleTag: "h3",
 			titleAriaLabel: "",
 			titleLink: "",
+			titleLinkTarget: "",
 			bodyId: "",
 			bodyTag: "p",
 			bodyAriaLabel: "",
 			bodyLink: "",
+			bodyLinkTarget: "",
 		},
 		{
 			title: "Drop in a comment.",
@@ -35,10 +39,12 @@ const FEATURES_CONTENT = {
 			titleTag: "h3",
 			titleAriaLabel: "",
 			titleLink: "",
+			titleLinkTarget: "",
 			bodyId: "",
 			bodyTag: "p",
 			bodyAriaLabel: "",
 			bodyLink: "",
+			bodyLinkTarget: "",
 		},
 	],
 };
@@ -74,6 +80,8 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 				"data-wlp-aria-label-value": item.titleAriaLabel,
 				"data-wlp-link-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleLink`,
 				"data-wlp-link": item.titleLink,
+				"data-wlp-link-target-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].titleLinkTarget`,
+				"data-wlp-link-target-value": item.titleLinkTarget,
 				id: item.id || undefined,
 				"aria-label": item.titleAriaLabel || undefined,
 				class: "text-xl font-semibold mb-3",
@@ -89,6 +97,8 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 				"data-wlp-aria-label-value": item.bodyAriaLabel,
 				"data-wlp-link-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyLink`,
 				"data-wlp-link": item.bodyLink,
+				"data-wlp-link-target-source": `astro:src/components/Features.astro:FEATURES_CONTENT.items[${i}].bodyLinkTarget`,
+				"data-wlp-link-target-value": item.bodyLinkTarget,
 				id: item.bodyId || undefined,
 				"aria-label": item.bodyAriaLabel || undefined,
 				class: "text-slate-700 leading-relaxed",
@@ -96,14 +106,24 @@ const HeadlineTag = FEATURES_CONTENT.headlineTag as keyof HTMLElementTagNameMap;
 			return (
 				<div>
 					{item.titleLink ? (
-						<a href={item.titleLink} class="text-inherit no-underline">
+						<a
+							href={item.titleLink}
+							class="text-inherit no-underline"
+							target={item.titleLinkTarget === "_blank" ? "_blank" : undefined}
+							rel={item.titleLinkTarget === "_blank" ? "noopener noreferrer" : undefined}
+						>
 							<ItemTag {...titleProps}>{item.title}</ItemTag>
 						</a>
 					) : (
 						<ItemTag {...titleProps}>{item.title}</ItemTag>
 					)}
 					{item.bodyLink ? (
-						<a href={item.bodyLink} class="text-inherit no-underline">
+						<a
+							href={item.bodyLink}
+							class="text-inherit no-underline"
+							target={item.bodyLinkTarget === "_blank" ? "_blank" : undefined}
+							rel={item.bodyLinkTarget === "_blank" ? "noopener noreferrer" : undefined}
+						>
 							<ItemBodyTag {...bodyItemProps}>{item.body}</ItemBodyTag>
 						</a>
 					) : (
