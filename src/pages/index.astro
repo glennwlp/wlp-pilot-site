@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Hero from '../components/Hero.astro';
 import Features from '../components/Features.astro';
 import Footer from '../components/Footer.astro';
+import CollectionGrid from "@whitelabelpress/astro-sections/components/CollectionGrid.astro";
 
 const PAGE_META = {
 	title: "WhitelabelPRESS pilot — built for editors",
@@ -25,5 +26,19 @@ const PAGE_META = {
 		<Hero />
 		<Features />
 		<Footer />
-	</body>
+	<CollectionGrid
+		postType="property"
+		wpUrl="https://acss.whitelabelpress.com"
+		limit={5}
+		orderBy="date"
+		mapping={{
+			image: "_embedded.wp:featuredmedia[0].source_url",
+			title: "title.rendered",
+			badge: "acf.listing_price",
+			body: "acf.short_description",
+			href: "link",
+		}}
+		variant="card-stacked"
+	/>
+</body>
 </html>
